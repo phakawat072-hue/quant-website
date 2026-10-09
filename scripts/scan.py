@@ -37,6 +37,10 @@ SECTOR_TH = {
     "Materials": "วัสดุ",
     "Utilities": "สาธารณูปโภค",
     "Real Estate": "อสังหาริมทรัพย์",
+    # ICB names used by the Nasdaq-100 page
+    "Technology": "เทคโนโลยี",
+    "Telecommunications": "สื่อสาร",
+    "Basic Materials": "วัสดุ",
 }
 
 
@@ -46,17 +50,26 @@ def read_tables(url: str) -> list[pd.DataFrame]:
         return pd.read_html(io.StringIO(res.read().decode("utf-8", "replace")))
 
 
+def find_col(cols: dict, *needles: str):
+    return next((cols[c] for n in needles for c in cols if n in c), None)
+
+
 def constituents(url: str, min_rows: int, max_rows: int) -> list[tuple[str, str, str]]:
+    seen = []
     for t in read_tables(url):
+        if isinstance(t.columns, pd.MultiIndex):
+            t.columns = [" ".join(str(x) for x in c if not str(x).startswith("Unnamed")) for c in t.columns]
         cols = {str(c).strip().lower(): c for c in t.columns}
-        sym = cols.get("symbol") or cols.get("ticker")
-        name = cols.get("security") or cols.get("company")
-        sector = next((cols[c] for c in cols if c.startswith("gics sector")), None)
+        seen.append(f"{len(t)} rows {list(cols)[:6]}")
+        sym = find_col(cols, "ticker", "symbol")
+        name = find_col(cols, "security", "company", "name")
+        sector = find_col(cols, "gics sector", "icb industry", "sector", "industry")
         if sym is None or name is None or not (min_rows <= len(t) <= max_rows):
             continue
-        return [(str(r[sym]).strip().upper(), str(r[name]).strip(),
-                 str(r[sector]).strip() if sector is not None else "") for _, r in t.iterrows()]
-    raise ValueError(f"constituents table not found at {url}")
+        out = [(str(r[sym]).strip().upper(), str(r[name]).strip(),
+                str(r[sector]).strip() if sector is not None else "") for _, r in t.iterrows()]
+        return [x for x in out if x[0] and x[0] != "NAN"]
+    raise ValueError(f"constituents table not found; tables seen: {seen[:8]}")
 
 
 def previous_rows() -> list[dict]:
@@ -69,7 +82,7 @@ def previous_rows() -> list[dict]:
 
 def universe() -> dict[str, dict]:
     members: dict[str, dict] = {}
-    for flag, url, lo, hi in (("S", SP500_URL, 450, 560), ("N", NDX_URL, 90, 110)):
+    for flag, url, lo, hi in (("S", SP500_URL, 450, 560), ("N", NDX_URL, 95, 130)):
         try:
             for sym, name, sector in constituents(url, lo, hi):
                 m = members.setdefault(sym, {"n": name, "s": SECTOR_TH.get(sector, sector), "i": ""})
