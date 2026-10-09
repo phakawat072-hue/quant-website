@@ -12,6 +12,22 @@
     return out;
   }
 
+  // Seeded with the SMA of the first n closes, then alpha = 2 / (n + 1).
+  function ema(x, n) {
+    const out = new Array(x.length).fill(NaN);
+    if (x.length < n) return out;
+    const a = 2 / (n + 1);
+    let e = 0;
+    for (let i = 0; i < n; i++) e += x[i];
+    e /= n;
+    out[n - 1] = e;
+    for (let i = n; i < x.length; i++) {
+      e = a * x[i] + (1 - a) * e;
+      out[i] = e;
+    }
+    return out;
+  }
+
   function rollingStd(x, n, mean) {
     const out = new Array(x.length).fill(NaN);
     for (let i = n - 1; i < x.length; i++) {
@@ -72,6 +88,61 @@
         { name: 'SMA ' + p.fast, values: sma(close, p.fast), color: 2 },
         { name: 'SMA ' + p.slow, values: sma(close, p.slow), color: 3 },
       ],
+    },
+
+    ema: {
+      name: 'EMA Crossover',
+      desc: 'ถือ Long เมื่อ EMA เร็วอยู่เหนือ EMA ช้า (เช่น 50/200 = Golden Cross / Death Cross แบบ EMA)',
+      params: [
+        { key: 'fast', label: 'EMA เร็ว (วัน)', min: 2, max: 250, step: 1, def: 50 },
+        { key: 'slow', label: 'EMA ช้า (วัน)', min: 5, max: 400, step: 1, def: 200 },
+      ],
+      validate: (p) => (p.fast >= p.slow ? 'EMA เร็วต้องน้อยกว่า EMA ช้า' : null),
+      signal(close, p, allowShort) {
+        const f = ema(close, p.fast), s = ema(close, p.slow);
+        return close.map((_, i) => {
+          if (!isFinite(f[i]) || !isFinite(s[i])) return 0;
+          return f[i] > s[i] ? 1 : allowShort ? -1 : 0;
+        });
+      },
+      overlays: (close, p) => [
+        { name: 'EMA ' + p.fast, values: ema(close, p.fast), color: 2 },
+        { name: 'EMA ' + p.slow, values: ema(close, p.slow), color: 3 },
+      ],
+    },
+
+    emaTrend: {
+      name: 'ราคาเทียบ EMA200',
+      desc: 'ถือ Long เมื่อราคาปิดอยู่เหนือเส้น EMA (ตัวกรองแนวโน้มหลัก) · บัฟเฟอร์ช่วยลดสัญญาณหลอกตอนราคาวนรอบเส้น',
+      params: [
+        { key: 'period', label: 'EMA (วัน)', min: 5, max: 400, step: 1, def: 200 },
+        { key: 'buffer', label: 'บัฟเฟอร์ (%)', min: 0, max: 10, step: 0.5, def: 0 },
+      ],
+      // With a buffer, entry needs close > EMA*(1+b) and exit needs close < EMA*(1-b);
+      // in between the previous position is kept.
+      signal(close, p, allowShort) {
+        const e = ema(close, p.period);
+        const b = p.buffer / 100;
+        let pos = 0;
+        return close.map((c, i) => {
+          if (!isFinite(e[i])) return 0;
+          if (c > e[i] * (1 + b)) pos = 1;
+          else if (c < e[i] * (1 - b)) pos = allowShort ? -1 : 0;
+          return pos;
+        });
+      },
+      overlays(close, p) {
+        const e = ema(close, p.period);
+        const out = [{ name: 'EMA ' + p.period, values: e, color: 2 }];
+        if (p.buffer > 0) {
+          const b = p.buffer / 100;
+          out.push(
+            { name: 'บัฟเฟอร์ ±' + p.buffer + '%', values: e.map((v) => v * (1 + b)), color: 3 },
+            { name: 'บัฟเฟอร์ ±' + p.buffer + '%', values: e.map((v) => v * (1 - b)), color: 3, legend: false },
+          );
+        }
+        return out;
+      },
     },
 
     momentum: {
@@ -162,5 +233,5 @@
     return p;
   }
 
-  QL.strategies = { STRATEGIES, defaults, sma, rsi, bollinger };
+  QL.strategies = { STRATEGIES, defaults, sma, ema, rsi, bollinger };
 })((window.QL = window.QL || {}));
