@@ -31,10 +31,15 @@
   <main class="page">
     <section class="controls" aria-label="ตัวกรองและการตั้งค่า">
       <div class="control-row">
-        <label class="field">
-          <span class="field-label">สินทรัพย์</span>
-          <select id="assetSelect"></select>
-        </label>
+        <div class="field asset-field">
+          <label class="field-label" for="assetSearch">ค้นหาหุ้น <kbd class="kbd" aria-hidden="true">/</kbd></label>
+          <div class="combo">
+            <svg class="combo-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+            <input id="assetSearch" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="assetList"
+              autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="พิมพ์ตัวย่อหรือชื่อ เช่น NVDA, Tesla">
+            <ul id="assetList" class="combo-list" role="listbox" aria-label="รายชื่อหุ้น" hidden></ul>
+          </div>
+        </div>
         <div class="field">
           <span class="field-label">ข้อมูลของคุณ</span>
           <div class="inline">
@@ -196,6 +201,7 @@
   <script src="js/strategies.js"></script>
   <script src="js/backtest.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/search.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

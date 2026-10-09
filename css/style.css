@@ -222,6 +222,82 @@ input[type="number"] { width: 100%; font-variant-numeric: tabular-nums; }
   box-shadow: 0 0 0 1px var(--border);
 }
 
+.asset-field { width: 320px; max-width: 100%; }
+.kbd {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: 11px/14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: center;
+  color: var(--text-muted);
+}
+.combo { position: relative; }
+.combo input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px 0 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+.combo input::placeholder { color: var(--text-muted); }
+.combo-icon {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.combo-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max(100%, 360px);
+  max-width: calc(100vw - 32px);
+  max-height: 340px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+}
+.combo-group {
+  padding: 8px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.combo-option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.combo-option.is-active { background: var(--surface-2); }
+.combo-option[aria-selected="true"] .combo-ticker::after { content: " ✓"; color: var(--accent); }
+.combo-ticker { flex: none; min-width: 64px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.combo-name { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-tag { flex: none; font-size: 11px; color: var(--text-muted); }
+.combo-empty { padding: 12px 8px; font-size: 13px; color: var(--text-muted); }
+
 .check { display: inline-flex; align-items: center; gap: 8px; height: 36px; font-size: 14px; cursor: pointer; }
 .check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
 .check-sm { height: 30px; font-size: 13px; color: var(--text-secondary); }

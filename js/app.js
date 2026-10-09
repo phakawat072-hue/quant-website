@@ -56,6 +56,7 @@
 
   // ---------- data & range ----------
   let loadToken = 0;
+  let assetSearch = null;
 
   async function loadData() {
     const token = ++loadToken;
@@ -89,7 +90,6 @@
       setStatus(err.message, true);
       if (state.loadedId) {
         state.assetId = state.loadedId;
-        $('assetSelect').value = state.loadedId;
         syncDataUi();
       }
     }
@@ -98,6 +98,7 @@
   function syncDataUi() {
     const id = state.assetId;
     $('reseedBtn').hidden = !id.startsWith('sim:');
+    if (assetSearch) assetSearch.refresh();
     const info = $('dataInfo');
     const d = state.data;
     if (!d) { info.textContent = ''; return; }
@@ -150,35 +151,26 @@
   }
 
   // ---------- controls ----------
+  function assetItems() {
+    const items = [];
+    if (state.csvData) items.push({ id: 'csv', ticker: state.csvData.name, name: 'ไฟล์ CSV ของคุณ', group: 'ไฟล์ของคุณ', tag: 'CSV' });
+    for (const t of stocks) items.push({ id: 'stock:' + t.ticker, ticker: t.ticker, name: t.name, group: 'หุ้นสหรัฐ · ' + t.sector, tag: t.sector });
+    for (const a of ASSETS) items.push({ id: 'sim:' + a.id, ticker: a.ticker, name: a.label + ' (จำลอง)', group: 'ข้อมูลจำลอง (ทดลอง)', tag: 'จำลอง' });
+    return items;
+  }
+
   function buildControls() {
-    const sel = $('assetSelect');
-    const groups = new Map();
-    for (const t of stocks) {
-      if (!groups.has(t.sector)) {
-        const g = document.createElement('optgroup');
-        g.label = 'หุ้นสหรัฐ · ' + t.sector;
-        groups.set(t.sector, g);
-        sel.appendChild(g);
-      }
-      const o = document.createElement('option');
-      o.value = 'stock:' + t.ticker;
-      o.textContent = t.ticker + ' · ' + t.name;
-      groups.get(t.sector).appendChild(o);
-    }
-    const simGroup = document.createElement('optgroup');
-    simGroup.label = 'ข้อมูลจำลอง (ทดลอง)';
-    for (const a of ASSETS) {
-      const o = document.createElement('option');
-      o.value = 'sim:' + a.id;
-      o.textContent = a.ticker + ' · ' + a.label;
-      simGroup.appendChild(o);
-    }
-    sel.appendChild(simGroup);
-    sel.value = state.assetId;
     if (manifest) $('dataUpdated').textContent = ' (ข้อมูลล่าสุดถึง ' + manifest.updated + ')';
-    sel.addEventListener('change', () => {
-      state.assetId = sel.value;
-      loadAndRun();
+    assetSearch = QL.search.create({
+      input: $('assetSearch'),
+      list: $('assetList'),
+      getItems: assetItems,
+      getCurrent: () => state.assetId,
+      onSelect: (id) => {
+        state.assetId = id;
+        loadAndRun();
+      },
+      emptyText: (q) => 'ไม่พบ “' + q + '” · มีหุ้นสหรัฐ ' + stocks.length + ' ตัวในระบบ — หุ้นตัวอื่นใช้ปุ่ม “อัปโหลด CSV” ได้',
     });
 
     const ss = $('strategySelect');
@@ -240,11 +232,7 @@
       reader.onload = () => {
         try {
           state.csvData = parseCsv(String(reader.result), file.name);
-          let opt = sel.querySelector('option[value="csv"]');
-          if (!opt) { opt = document.createElement('option'); opt.value = 'csv'; sel.appendChild(opt); }
-          opt.textContent = 'ไฟล์: ' + state.csvData.name;
           state.assetId = 'csv';
-          sel.value = 'csv';
           const msg = 'โหลด ' + state.csvData.name + ' แล้ว: ' + state.csvData.dates.length.toLocaleString('en-US') + ' แถว';
           loadAndRun().then(() => setStatus(msg));
         } catch (err) {
