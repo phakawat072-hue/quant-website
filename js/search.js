@@ -169,7 +169,7 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || !input.offsetParent) return;
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
       e.preventDefault();

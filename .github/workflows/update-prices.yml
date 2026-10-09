@@ -7,6 +7,7 @@ on:
   push:
     paths:
       - 'scripts/fetch_prices.py'
+      - 'scripts/scan.py'
       - 'scripts/tickers.json'
       - '.github/workflows/update-prices.yml'
 
@@ -28,11 +29,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install yfinance
-        run: pip install --upgrade yfinance
+      - name: Install dependencies
+        run: pip install --upgrade yfinance lxml
 
       - name: Download prices
         run: python scripts/fetch_prices.py
+
+      - name: Scan S&P 500 + Nasdaq-100
+        run: python scripts/scan.py
 
       - name: Commit updated data
         run: |

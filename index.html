@@ -23,12 +23,18 @@
         <p class="brand-sub">ทดสอบกลยุทธ์เทรดเชิงปริมาณย้อนหลัง</p>
       </div>
     </div>
+    <nav class="view-nav" aria-label="เมนูหลัก">
+      <a href="#" data-view="backtest">ทดสอบกลยุทธ์</a>
+      <a href="#scan" data-view="scan">สแกนหุ้น</a>
+    </nav>
     <button id="themeToggle" class="btn btn-ghost" type="button" aria-label="สลับธีมสว่าง/มืด">
       <span class="theme-icon" aria-hidden="true"></span><span id="themeLabel">ธีม</span>
     </button>
   </header>
 
   <main class="page">
+    <div id="scanView" class="scan-view" hidden></div>
+    <div id="backtestView">
     <section class="controls" aria-label="ตัวกรองและการตั้งค่า">
       <div class="control-row">
         <div class="field asset-field">
@@ -201,9 +207,11 @@
         <div id="tradeTable"></div>
       </article>
     </section>
+    </div>
 
     <footer class="footer">
       <p>หุ้นยอดนิยมใช้ราคาปิดรายวันที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance อัปเดตอัตโนมัติทุกวันทำการ<span id="dataUpdated"></span> · หุ้นตัวอื่นดึงสดจาก Twelve Data ด้วย API key ของคุณ · รายชื่อหุ้นจาก NASDAQ Trader · ข้อมูลอาจล่าช้าหรือคลาดเคลื่อน</p>
+      <p>หน้าสแกนหุ้นคำนวณจากหุ้นใน S&amp;P 500 และ Nasdaq-100 (รายชื่อจาก Wikipedia และ Nasdaq) ด้วยราคาจาก Yahoo Finance ทุกวันทำการ</p>
       <p>เว็บนี้ใช้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน · ผลการทดสอบย้อนหลังไม่รับประกันผลตอบแทนในอนาคต</p>
       <p>รองรับไฟล์ CSV ที่มีคอลัมน์ <code>Date</code> และ <code>Close</code> (หรือ <code>Adj Close</code>) เช่นไฟล์ที่ดาวน์โหลดจาก Yahoo Finance</p>
     </footer>
@@ -212,11 +220,13 @@
   <script src="js/data.js"></script>
   <script src="data/prices/index.js"></script>
   <script src="data/symbols.js"></script>
+  <script src="data/scan.js"></script>
   <script src="js/live.js"></script>
   <script src="js/strategies.js"></script>
   <script src="js/backtest.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/search.js"></script>
+  <script src="js/scan.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
