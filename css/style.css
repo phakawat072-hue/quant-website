@@ -297,6 +297,35 @@ input[type="number"] { width: 100%; font-variant-numeric: tabular-nums; }
 .combo-name { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .combo-tag { flex: none; font-size: 11px; color: var(--text-muted); }
 .combo-empty { padding: 12px 8px; font-size: 13px; color: var(--text-muted); }
+.combo-more { padding: 8px 8px 6px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--grid); margin-top: 4px; }
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-ink); }
+
+.live-panel {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface-1);
+  display: grid;
+  gap: 8px;
+}
+.live-title { font-size: 15px; font-weight: 600; }
+.live-desc { font-size: 13px; color: var(--text-secondary); }
+.live-desc a { color: var(--accent-ink); }
+#keyInput {
+  height: 36px;
+  width: 300px;
+  max-width: 100%;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+}
 
 .check { display: inline-flex; align-items: center; gap: 8px; height: 36px; font-size: 14px; cursor: pointer; }
 .check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }

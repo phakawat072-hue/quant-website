@@ -208,5 +208,10 @@
     return pending[ticker].then(() => decode(ticker));
   }
 
-  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock };
+  // Directory of every US-listed symbol: [symbol, name, exchange, isEtf]
+  let symbols = [];
+  function setSymbols(list) { symbols = list; }
+  function getSymbols() { return symbols; }
+
+  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols };
 })((window.QL = window.QL || {}));

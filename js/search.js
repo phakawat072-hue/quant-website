@@ -19,8 +19,10 @@
     return -1;
   }
 
+  const MAX_RESULTS = 60;
+
   function search(items, query) {
-    if (!query.trim()) return items.slice();
+    if (!query.trim()) return items.filter((it) => !it.searchOnly);
     return items
       .map((it, i) => ({ it, r: rank(it, query), i }))
       .filter((x) => x.r >= 0)
@@ -29,7 +31,7 @@
   }
 
   // Accessible combobox (WAI-ARIA 1.2 list autocomplete pattern).
-  function create({ input, list, getItems, getCurrent, onSelect, emptyText }) {
+  function create({ input, list, getItems, getCurrent, onSelect, emptyText, footerText }) {
     let results = [];
     let active = -1;
     let isOpen = false;
@@ -63,7 +65,8 @@
 
     function render(query) {
       const q = query.trim();
-      results = search(getItems(), q);
+      const all = search(getItems(), q);
+      results = all.slice(0, MAX_RESULTS);
       list.textContent = '';
       if (!results.length) {
         const li = document.createElement('li');
@@ -105,6 +108,16 @@
         li.addEventListener('mousemove', () => { if (active !== i) setActive(i); });
         list.appendChild(li);
       });
+      const footer = all.length > results.length
+        ? 'แสดง ' + results.length + ' จาก ' + all.length.toLocaleString('en-US') + ' รายการ · พิมพ์ให้เจาะจงขึ้น'
+        : footerText ? footerText(q) : '';
+      if (footer) {
+        const li = document.createElement('li');
+        li.className = 'combo-more';
+        li.setAttribute('role', 'presentation');
+        li.textContent = footer;
+        list.appendChild(li);
+      }
       const cur = results.findIndex((it) => it.id === getCurrent());
       setActive(q ? 0 : Math.max(0, cur));
     }
@@ -162,7 +175,7 @@
     });
 
     showCurrent();
-    return { refresh: () => { if (document.activeElement !== input) showCurrent(); } };
+    return { refresh: (force) => { if (force || !isOpen) showCurrent(); } };
   }
 
   QL.search = { create, rank, search };

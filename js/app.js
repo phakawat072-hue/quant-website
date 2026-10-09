@@ -13,6 +13,7 @@
   const state = {
     assetId: stocks.length ? 'stock:' + (stocks.find((t) => t.ticker === 'AAPL') || stocks[0]).ticker : 'sim:index',
     loadedId: null,
+    pendingLive: null,
     seed: 42,
     data: null,
     csvData: null,
@@ -63,11 +64,20 @@
     const id = state.assetId;
     let data;
     if (id === 'csv' && state.csvData) data = state.csvData;
-    else if (id.startsWith('stock:')) {
-      setStatus('กำลังโหลดข้อมูล ' + id.slice(6) + '…');
+    else if (id.startsWith('stock:') || id.startsWith('live:')) {
+      const live = id.startsWith('live:');
+      const sym = id.slice(id.indexOf(':') + 1);
+      setStatus((live ? 'กำลังดึงข้อมูล ' + sym + ' จาก Twelve Data…' : 'กำลังโหลดข้อมูล ' + sym + '…'));
       document.body.classList.add('is-busy');
       try {
-        data = await QL.data.loadStock(id.slice(6));
+        data = live ? await QL.live.fetchSeries(sym, liveName(sym)) : await QL.data.loadStock(sym);
+      } catch (err) {
+        if (live && (err.code === 'no_key' || err.code === 'bad_key')) {
+          state.pendingLive = id;
+          showKeyPanel(true);
+          if (err.code === 'no_key') err.message = 'ใส่ API key ของ Twelve Data (ฟรี) ในกล่องด้านบน เพื่อดึงราคา ' + sym;
+        }
+        throw err;
       } finally {
         if (token === loadToken) document.body.classList.remove('is-busy');
       }
@@ -78,6 +88,7 @@
     }
     state.data = data;
     state.loadedId = id;
+    state.pendingLive = null;
     applyRange(state.range === 'CUSTOM' ? '5Y' : state.range);
     syncDataUi();
     return true;
@@ -87,10 +98,11 @@
     try {
       if (await loadData()) run();
     } catch (err) {
-      setStatus(err.message, true);
+      setStatus(err.message, err.code !== 'no_key');
       if (state.loadedId) {
         state.assetId = state.loadedId;
         syncDataUi();
+        if (assetSearch) assetSearch.refresh(true);
       }
     }
   }
@@ -105,6 +117,8 @@
     const span = isoDate(d.dates[0]) + ' ถึง ' + isoDate(d.dates[d.dates.length - 1]);
     if (d.source === 'stock') {
       info.textContent = d.name + ' · ' + d.label + ' · ราคาปิดปรับปันผลและการแตกหุ้นแล้ว จาก ' + (d.provider || 'Yahoo Finance') + ' · ' + span;
+    } else if (d.source === 'live') {
+      info.textContent = d.name + ' · ' + d.label + ' · ' + d.adjustedNote + ' · ดึงสดจาก Twelve Data · ' + span;
     } else if (d.source === 'csv') {
       info.textContent = 'ไฟล์ของคุณ · ' + d.dates.length.toLocaleString('en-US') + ' แถว · ' + span;
     } else {
@@ -151,12 +165,69 @@
   }
 
   // ---------- controls ----------
-  function assetItems() {
-    const items = [];
-    if (state.csvData) items.push({ id: 'csv', ticker: state.csvData.name, name: 'ไฟล์ CSV ของคุณ', group: 'ไฟล์ของคุณ', tag: 'CSV' });
-    for (const t of stocks) items.push({ id: 'stock:' + t.ticker, ticker: t.ticker, name: t.name, group: 'หุ้นสหรัฐ · ' + t.sector, tag: t.sector });
+  const symbolKey = (s) => s.toUpperCase().replace(/[.\-]/g, '');
+  let baseItems = null;
+
+  function buildBaseItems() {
+    const items = stocks.map((t) => ({ id: 'stock:' + t.ticker, ticker: t.ticker, name: t.name, group: 'หุ้นยอดนิยม (โหลดทันที) · ' + t.sector, tag: t.sector }));
+    const bundled = new Set(stocks.map((t) => symbolKey(t.ticker)));
+    for (const [sym, name, exch, etf] of QL.data.getSymbols()) {
+      if (bundled.has(symbolKey(sym))) continue;
+      items.push({ id: 'live:' + sym, ticker: sym, name, group: 'หุ้นสหรัฐทั้งหมด (ดึงสด)', tag: exch + (etf ? ' · ETF' : '') + ' · ดึงสด', searchOnly: true });
+    }
     for (const a of ASSETS) items.push({ id: 'sim:' + a.id, ticker: a.ticker, name: a.label + ' (จำลอง)', group: 'ข้อมูลจำลอง (ทดลอง)', tag: 'จำลอง' });
     return items;
+  }
+
+  function assetItems() {
+    if (!baseItems) baseItems = buildBaseItems();
+    if (!state.csvData) return baseItems;
+    return [{ id: 'csv', ticker: state.csvData.name, name: 'ไฟล์ CSV ของคุณ', group: 'ไฟล์ของคุณ', tag: 'CSV' }].concat(baseItems);
+  }
+
+  function liveName(sym) {
+    const row = QL.data.getSymbols().find((r) => r[0] === sym);
+    return row ? row[1] : sym;
+  }
+
+  // ---------- live data key panel ----------
+  function showKeyPanel(show) {
+    $('livePanel').hidden = !show;
+    if (show) {
+      $('keyInput').value = QL.live.getKey();
+      $('keyInput').focus();
+    }
+  }
+
+  function syncKeyButton() {
+    const has = !!QL.live.getKey();
+    $('keyBtn').textContent = has ? 'API key ✓' : 'ตั้งค่า API key';
+    $('keyClear').hidden = !has;
+  }
+
+  function buildKeyPanel() {
+    syncKeyButton();
+    $('keyBtn').addEventListener('click', () => showKeyPanel($('livePanel').hidden));
+    $('keyClose').addEventListener('click', () => showKeyPanel(false));
+    $('keyClear').addEventListener('click', () => {
+      QL.live.setKey('');
+      $('keyInput').value = '';
+      syncKeyButton();
+      setStatus('ลบ API key ออกจากเบราว์เซอร์นี้แล้ว');
+    });
+    $('keyForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const key = $('keyInput').value.trim();
+      if (!key) { setStatus('กรุณาวาง API key ก่อนบันทึก', true); return; }
+      QL.live.setKey(key);
+      syncKeyButton();
+      showKeyPanel(false);
+      if (state.pendingLive) {
+        state.assetId = state.pendingLive;
+        state.pendingLive = null;
+        loadAndRun();
+      } else setStatus('บันทึก API key แล้ว เลือกหุ้นที่ต้องการจากช่องค้นหาได้เลย');
+    });
   }
 
   function buildControls() {
@@ -170,8 +241,13 @@
         state.assetId = id;
         loadAndRun();
       },
-      emptyText: (q) => 'ไม่พบ “' + q + '” · มีหุ้นสหรัฐ ' + stocks.length + ' ตัวในระบบ — หุ้นตัวอื่นใช้ปุ่ม “อัปโหลด CSV” ได้',
+      emptyText: (q) => 'ไม่พบ “' + q + '” ในรายชื่อหุ้นสหรัฐ · ลองพิมพ์ตัวย่อ หรือใช้ปุ่ม “อัปโหลด CSV”',
+      footerText: (q) => {
+        const n = QL.data.getSymbols().length;
+        return !q && n ? 'พิมพ์เพื่อค้นหาหุ้นสหรัฐทั้งหมด ' + n.toLocaleString('en-US') + ' ตัว' : '';
+      },
     });
+    buildKeyPanel();
 
     const ss = $('strategySelect');
     for (const [k, s] of Object.entries(STRATEGIES)) {
@@ -599,7 +675,7 @@
     const shown = trades.slice(0, 200);
     $('tradeSub').textContent = trades.length
       ? 'ทั้งหมด ' + trades.length.toLocaleString('en-US') + ' เทรด' + (trades.length > shown.length ? ' · แสดงล่าสุด ' + shown.length + ' รายการ' : '') + ' · ผลตอบแทนหักค่าธรรมเนียมแล้ว' +
-        (state.data.source === 'stock' ? ' · ราคาเป็นราคาปรับปันผล/แตกหุ้น' : '')
+        (state.data.source === 'stock' || state.data.source === 'live' ? ' · ราคาเป็นราคาที่ปรับแล้ว (ปันผล/แตกหุ้น)' : '')
       : 'ไม่มีการเทรดในช่วงเวลานี้';
     const rows = shown.map((t, i) => {
       const exitIdx = t.openEnd ? state.e : t.exit;

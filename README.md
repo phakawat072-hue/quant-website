@@ -15,7 +15,10 @@ python3 -m http.server 8000
 
 ## ฟีเจอร์
 
-- **หุ้นสหรัฐรายตัว**: 46 ตัวยอดนิยม (AAPL, MSFT, NVDA, TSLA, JPM, KO ฯลฯ) และ ETF SPY/QQQ ราคาปิดรายวันตั้งแต่ปี 2010 ที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance
+- **หุ้นสหรัฐทุกตัว**: ช่องค้นหารองรับหุ้นและ ETF ที่จดทะเบียนใน NYSE / NASDAQ / NYSE American ทั้งหมด (รายชื่อจาก NASDAQ Trader)
+  - 46 ตัวยอดนิยม (AAPL, MSFT, NVDA, TSLA, JPM, KO ฯลฯ รวม SPY/QQQ) เก็บราคาไว้ใน repo โหลดได้ทันที (Yahoo Finance ตั้งแต่ปี 2010)
+  - ตัวอื่นดึงสดจาก [Twelve Data](https://twelvedata.com) ด้วย API key ฟรีของผู้ใช้ (8 ครั้ง/นาที, 800 ครั้ง/วัน) key เก็บใน localStorage ของเบราว์เซอร์เท่านั้น และแคชข้อมูลไว้ 12 ชั่วโมง
+  - การดึงสดต้องเปิดผ่าน GitHub Pages หรือไฟล์ในเครื่อง (ลิงก์พรีวิวบน claude.ai อาจบล็อกการเชื่อมต่อภายนอก)
 - อัปโหลด **ไฟล์ CSV** ของตัวเองได้ และยังมีราคาจำลองไว้ทดลองระบบ
 - **กลยุทธ์**: SMA Crossover, Time-Series Momentum, RSI Mean Reversion, Bollinger Reversion, Buy & Hold ปรับพารามิเตอร์ได้ ตั้งค่าธรรมเนียม (bps) ได้ และเลือกได้ว่าจะอนุญาต Short หรือไม่
 - **ตัวชี้วัด**: ผลตอบแทนรวม, CAGR, Sharpe, Sortino, Max Drawdown, ความผันผวน, Calmar, Win rate, Profit factor, Exposure เทียบกับ Buy & Hold
@@ -54,7 +57,10 @@ js/strategies.js    อินดิเคเตอร์และกลยุท
 js/backtest.js      เอนจิน Backtest และตัวชี้วัด
 js/charts.js        กราฟ SVG (line, histogram, heatmap, table)
 js/app.js           จัดการ state และ UI
-data/prices/        ราคาหุ้น (สร้างอัตโนมัติ ห้ามแก้ด้วยมือ)
+js/search.js        ช่องค้นหาหุ้น
+js/live.js          ดึงราคาสดจาก Twelve Data
+data/prices/        ราคาหุ้นยอดนิยม (สร้างอัตโนมัติ ห้ามแก้ด้วยมือ)
+data/symbols.js     รายชื่อหุ้นสหรัฐทั้งหมด (สร้างอัตโนมัติ)
 scripts/            สคริปต์ดึงราคาและรายชื่อหุ้น
 ```
 

@@ -47,6 +47,7 @@
               อัปโหลด CSV
               <input id="csvInput" type="file" accept=".csv,text/csv,.txt">
             </label>
+            <button id="keyBtn" class="btn btn-outline" type="button" aria-controls="livePanel">ตั้งค่า API key</button>
             <button id="reseedBtn" class="btn btn-outline" type="button" title="สุ่มราคาจำลองชุดใหม่">สุ่มข้อมูลใหม่</button>
           </div>
         </div>
@@ -87,6 +88,18 @@
           <input id="shortInput" type="checkbox">
           <span>อนุญาต Short</span>
         </label>
+      </div>
+      <div id="livePanel" class="live-panel" hidden>
+        <h2 class="live-title">ดึงราคาหุ้นสหรัฐได้ทุกตัว</h2>
+        <p class="live-desc">หุ้นยอดนิยม 46 ตัวโหลดได้ทันที ส่วนตัวอื่นจะดึงสดจาก Twelve Data ด้วย API key ของคุณ
+          สมัครฟรีที่ <a href="https://twelvedata.com" target="_blank" rel="noopener noreferrer">twelvedata.com</a>
+          (แพ็กเกจฟรีใช้ได้ 8 ครั้ง/นาที และ 800 ครั้ง/วัน) · key จะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+        <form id="keyForm" class="inline">
+          <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="วาง API key ที่นี่" aria-label="Twelve Data API key">
+          <button class="btn btn-primary" type="submit">บันทึกแล้วโหลด</button>
+          <button id="keyClear" class="btn btn-ghost" type="button">ลบ key</button>
+          <button id="keyClose" class="btn btn-ghost" type="button">ปิด</button>
+        </form>
       </div>
       <p id="dataInfo" class="strategy-desc"></p>
       <p id="strategyDesc" class="strategy-desc"></p>
@@ -190,7 +203,7 @@
     </section>
 
     <footer class="footer">
-      <p>ราคาหุ้นสหรัฐเป็นราคาปิดรายวันที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance อัปเดตอัตโนมัติทุกวันทำการ<span id="dataUpdated"></span> · ข้อมูลอาจล่าช้าหรือคลาดเคลื่อน</p>
+      <p>หุ้นยอดนิยมใช้ราคาปิดรายวันที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance อัปเดตอัตโนมัติทุกวันทำการ<span id="dataUpdated"></span> · หุ้นตัวอื่นดึงสดจาก Twelve Data ด้วย API key ของคุณ · รายชื่อหุ้นจาก NASDAQ Trader · ข้อมูลอาจล่าช้าหรือคลาดเคลื่อน</p>
       <p>เว็บนี้ใช้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน · ผลการทดสอบย้อนหลังไม่รับประกันผลตอบแทนในอนาคต</p>
       <p>รองรับไฟล์ CSV ที่มีคอลัมน์ <code>Date</code> และ <code>Close</code> (หรือ <code>Adj Close</code>) เช่นไฟล์ที่ดาวน์โหลดจาก Yahoo Finance</p>
     </footer>
@@ -198,6 +211,8 @@
 
   <script src="js/data.js"></script>
   <script src="data/prices/index.js"></script>
+  <script src="data/symbols.js"></script>
+  <script src="js/live.js"></script>
   <script src="js/strategies.js"></script>
   <script src="js/backtest.js"></script>
   <script src="js/charts.js"></script>
