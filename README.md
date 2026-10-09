@@ -15,12 +15,19 @@ python3 -m http.server 8000
 
 ## ฟีเจอร์
 
-- **ข้อมูลตลาด**: ราคาจำลอง 5 สินทรัพย์ (ดัชนีหุ้น, หุ้นเทค, คริปโต, ทองคำ, ตลาด Sideway) จากโมเดล regime-switching GBM และ mean-reverting หรือ **อัปโหลดไฟล์ CSV** ของตัวเอง
+- **หุ้นสหรัฐรายตัว**: 46 ตัวยอดนิยม (AAPL, MSFT, NVDA, TSLA, JPM, KO ฯลฯ) และ ETF SPY/QQQ ราคาปิดรายวันตั้งแต่ปี 2010 ที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance
+- อัปโหลด **ไฟล์ CSV** ของตัวเองได้ และยังมีราคาจำลองไว้ทดลองระบบ
 - **กลยุทธ์**: SMA Crossover, Time-Series Momentum, RSI Mean Reversion, Bollinger Reversion, Buy & Hold ปรับพารามิเตอร์ได้ ตั้งค่าธรรมเนียม (bps) ได้ และเลือกได้ว่าจะอนุญาต Short หรือไม่
 - **ตัวชี้วัด**: ผลตอบแทนรวม, CAGR, Sharpe, Sortino, Max Drawdown, ความผันผวน, Calmar, Win rate, Profit factor, Exposure เทียบกับ Buy & Hold
 - **กราฟ**: Equity curve (มีสเกล Log), ราคาพร้อมอินดิเคเตอร์และจุดซื้อขาย, Drawdown, Histogram ผลตอบแทนรายวัน, Heatmap ผลตอบแทนรายเดือน
 - ตารางเปรียบเทียบทุกกลยุทธ์ บันทึกการเทรด และดาวน์โหลดผลเป็น CSV
 - รองรับธีมสว่าง/มืดและมือถือ ทุกกราฟมี tooltip (เมาส์หรือปุ่มลูกศร) และดูเป็นตารางได้
+
+## ข้อมูลราคาหุ้น
+
+- GitHub Actions (`.github/workflows/update-prices.yml`) รัน `scripts/fetch-prices.mjs` ทุกวันจันทร์–ศุกร์ หลังตลาดสหรัฐปิด แล้ว commit ไฟล์ลง `data/prices/`
+- สั่งอัปเดตเองได้ที่แท็บ **Actions → Update stock prices → Run workflow** หรือรันในเครื่อง `node scripts/fetch-prices.mjs` (Node 18+)
+- เพิ่ม/ลบหุ้นได้ที่ `scripts/tickers.json` แล้วรัน workflow อีกครั้ง
 
 ## รูปแบบไฟล์ CSV
 
@@ -47,6 +54,8 @@ js/strategies.js    อินดิเคเตอร์และกลยุท
 js/backtest.js      เอนจิน Backtest และตัวชี้วัด
 js/charts.js        กราฟ SVG (line, histogram, heatmap, table)
 js/app.js           จัดการ state และ UI
+data/prices/        ราคาหุ้น (สร้างอัตโนมัติ ห้ามแก้ด้วยมือ)
+scripts/            สคริปต์ดึงราคาและรายชื่อหุ้น
 ```
 
-> ข้อมูลเริ่มต้นเป็นราคาจำลองเพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน
+> เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน

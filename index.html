@@ -83,6 +83,7 @@
           <span>อนุญาต Short</span>
         </label>
       </div>
+      <p id="dataInfo" class="strategy-desc"></p>
       <p id="strategyDesc" class="strategy-desc"></p>
       <p id="status" class="status" role="status" aria-live="polite"></p>
     </section>
@@ -184,12 +185,14 @@
     </section>
 
     <footer class="footer">
-      <p>ข้อมูลเริ่มต้นเป็นราคาจำลองเพื่อการศึกษา ไม่ใช่ข้อมูลตลาดจริงและไม่ใช่คำแนะนำการลงทุน · ผลการทดสอบย้อนหลังไม่รับประกันผลตอบแทนในอนาคต</p>
+      <p>ราคาหุ้นสหรัฐเป็นราคาปิดรายวันที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance อัปเดตอัตโนมัติทุกวันทำการ<span id="dataUpdated"></span> · ข้อมูลอาจล่าช้าหรือคลาดเคลื่อน</p>
+      <p>เว็บนี้ใช้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน · ผลการทดสอบย้อนหลังไม่รับประกันผลตอบแทนในอนาคต</p>
       <p>รองรับไฟล์ CSV ที่มีคอลัมน์ <code>Date</code> และ <code>Close</code> (หรือ <code>Adj Close</code>) เช่นไฟล์ที่ดาวน์โหลดจาก Yahoo Finance</p>
     </footer>
   </main>
 
   <script src="js/data.js"></script>
+  <script src="data/prices/index.js"></script>
   <script src="js/strategies.js"></script>
   <script src="js/backtest.js"></script>
   <script src="js/charts.js"></script>

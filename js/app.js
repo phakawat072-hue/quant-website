@@ -7,8 +7,12 @@
   const C = QL.charts;
   const $ = (id) => document.getElementById(id);
 
+  const manifest = QL.data.getManifest();
+  const stocks = manifest ? manifest.tickers : [];
+
   const state = {
-    assetId: 'index',
+    assetId: stocks.length ? 'stock:' + (stocks.find((t) => t.ticker === 'AAPL') || stocks[0]).ticker : 'sim:index',
+    loadedId: null,
     seed: 42,
     data: null,
     csvData: null,
@@ -51,10 +55,60 @@
   }
 
   // ---------- data & range ----------
-  function loadData() {
-    if (state.assetId === 'csv' && state.csvData) state.data = state.csvData;
-    else state.data = simulate(ASSETS.find((a) => a.id === state.assetId) || ASSETS[0], state.seed);
-    applyRange(state.range);
+  let loadToken = 0;
+
+  async function loadData() {
+    const token = ++loadToken;
+    const id = state.assetId;
+    let data;
+    if (id === 'csv' && state.csvData) data = state.csvData;
+    else if (id.startsWith('stock:')) {
+      setStatus('กำลังโหลดข้อมูล ' + id.slice(6) + '…');
+      document.body.classList.add('is-busy');
+      try {
+        data = await QL.data.loadStock(id.slice(6));
+      } finally {
+        if (token === loadToken) document.body.classList.remove('is-busy');
+      }
+      if (token !== loadToken) return false;
+      setStatus('');
+    } else {
+      data = simulate(ASSETS.find((a) => 'sim:' + a.id === id) || ASSETS[0], state.seed);
+    }
+    state.data = data;
+    state.loadedId = id;
+    applyRange(state.range === 'CUSTOM' ? '5Y' : state.range);
+    syncDataUi();
+    return true;
+  }
+
+  async function loadAndRun() {
+    try {
+      if (await loadData()) run();
+    } catch (err) {
+      setStatus(err.message, true);
+      if (state.loadedId) {
+        state.assetId = state.loadedId;
+        $('assetSelect').value = state.loadedId;
+        syncDataUi();
+      }
+    }
+  }
+
+  function syncDataUi() {
+    const id = state.assetId;
+    $('reseedBtn').hidden = !id.startsWith('sim:');
+    const info = $('dataInfo');
+    const d = state.data;
+    if (!d) { info.textContent = ''; return; }
+    const span = isoDate(d.dates[0]) + ' ถึง ' + isoDate(d.dates[d.dates.length - 1]);
+    if (d.source === 'stock') {
+      info.textContent = d.name + ' · ' + d.label + ' · ราคาปิดปรับปันผลและการแตกหุ้นแล้ว จาก ' + (d.provider || 'Yahoo Finance') + ' · ' + span;
+    } else if (d.source === 'csv') {
+      info.textContent = 'ไฟล์ของคุณ · ' + d.dates.length.toLocaleString('en-US') + ' แถว · ' + span;
+    } else {
+      info.textContent = 'ราคาจำลองเพื่อทดลองระบบ ไม่ใช่ข้อมูลจริง';
+    }
   }
 
   function indexAtOrAfter(t) {
@@ -98,17 +152,33 @@
   // ---------- controls ----------
   function buildControls() {
     const sel = $('assetSelect');
+    const groups = new Map();
+    for (const t of stocks) {
+      if (!groups.has(t.sector)) {
+        const g = document.createElement('optgroup');
+        g.label = 'หุ้นสหรัฐ · ' + t.sector;
+        groups.set(t.sector, g);
+        sel.appendChild(g);
+      }
+      const o = document.createElement('option');
+      o.value = 'stock:' + t.ticker;
+      o.textContent = t.ticker + ' · ' + t.name;
+      groups.get(t.sector).appendChild(o);
+    }
+    const simGroup = document.createElement('optgroup');
+    simGroup.label = 'ข้อมูลจำลอง (ทดลอง)';
     for (const a of ASSETS) {
       const o = document.createElement('option');
-      o.value = a.id;
-      o.textContent = a.ticker + ' · ' + a.label + ' (จำลอง)';
-      sel.appendChild(o);
+      o.value = 'sim:' + a.id;
+      o.textContent = a.ticker + ' · ' + a.label;
+      simGroup.appendChild(o);
     }
+    sel.appendChild(simGroup);
     sel.value = state.assetId;
+    if (manifest) $('dataUpdated').textContent = ' (ข้อมูลล่าสุดถึง ' + manifest.updated + ')';
     sel.addEventListener('change', () => {
       state.assetId = sel.value;
-      loadData();
-      run();
+      loadAndRun();
     });
 
     const ss = $('strategySelect');
@@ -160,10 +230,7 @@
 
     $('reseedBtn').addEventListener('click', () => {
       state.seed = (Math.random() * 1e9) >>> 0;
-      if (state.assetId === 'csv') { state.assetId = ASSETS[0].id; $('assetSelect').value = state.assetId; }
-      loadData();
-      run();
-      setStatus('สุ่มราคาจำลองชุดใหม่แล้ว (seed ' + state.seed + ')');
+      loadAndRun().then(() => setStatus('สุ่มราคาจำลองชุดใหม่แล้ว (seed ' + state.seed + ')'));
     });
 
     $('csvInput').addEventListener('change', (e) => {
@@ -178,9 +245,8 @@
           opt.textContent = 'ไฟล์: ' + state.csvData.name;
           state.assetId = 'csv';
           sel.value = 'csv';
-          loadData();
-          run();
-          setStatus('โหลด ' + state.csvData.name + ' แล้ว: ' + state.csvData.dates.length.toLocaleString('en-US') + ' แถว');
+          const msg = 'โหลด ' + state.csvData.name + ' แล้ว: ' + state.csvData.dates.length.toLocaleString('en-US') + ' แถว';
+          loadAndRun().then(() => setStatus(msg));
         } catch (err) {
           setStatus('อ่านไฟล์ไม่สำเร็จ: ' + err.message, true);
         }
@@ -273,6 +339,7 @@
   }
 
   function run() {
+    if (!state.data) return;
     const strat = STRATEGIES[state.strategy];
     const p = state.params[state.strategy];
     const err = strat.validate && strat.validate(p);
@@ -543,7 +610,8 @@
     const trades = r.trades.slice().reverse();
     const shown = trades.slice(0, 200);
     $('tradeSub').textContent = trades.length
-      ? 'ทั้งหมด ' + trades.length.toLocaleString('en-US') + ' เทรด' + (trades.length > shown.length ? ' · แสดงล่าสุด ' + shown.length + ' รายการ' : '') + ' · ผลตอบแทนหักค่าธรรมเนียมแล้ว'
+      ? 'ทั้งหมด ' + trades.length.toLocaleString('en-US') + ' เทรด' + (trades.length > shown.length ? ' · แสดงล่าสุด ' + shown.length + ' รายการ' : '') + ' · ผลตอบแทนหักค่าธรรมเนียมแล้ว' +
+        (state.data.source === 'stock' ? ' · ราคาเป็นราคาปรับปันผล/แตกหุ้น' : '')
       : 'ไม่มีการเทรดในช่วงเวลานี้';
     const rows = shown.map((t, i) => {
       const exitIdx = t.openEnd ? state.e : t.exit;
@@ -591,8 +659,7 @@
 
   // ---------- init ----------
   buildControls();
-  loadData();
-  run();
+  loadAndRun();
 
   let lastWidth = 0, raf = 0;
   new ResizeObserver((entries) => {

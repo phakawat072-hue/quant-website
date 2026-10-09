@@ -161,5 +161,52 @@
     return { source: 'csv', name, label: 'ไฟล์ ' + name, dates, close };
   }
 
-  QL.data = { ASSETS, simulate, parseCsv, DAY };
+  // Real stock prices live in data/prices/*.js (written by scripts/fetch-prices.mjs).
+  // They are loaded as <script> tags rather than fetch() so the page also works from file://.
+  let manifest = null;
+  const raw = {};
+  const decoded = {};
+  const pending = {};
+
+  function setManifest(m) { manifest = m; }
+  function getManifest() { return manifest; }
+  function stockMeta(ticker) {
+    return manifest && manifest.tickers.find((t) => t.ticker === ticker);
+  }
+  function register(ticker, payload) { raw[ticker] = payload; }
+
+  function decode(ticker) {
+    if (decoded[ticker]) return decoded[ticker];
+    const p = raw[ticker];
+    const dates = new Array(p.d.length);
+    let t = Date.parse(p.start + 'T00:00:00Z');
+    for (let i = 0; i < p.d.length; i++) {
+      t += p.d[i] * DAY;
+      dates[i] = t;
+    }
+    const meta = stockMeta(ticker) || {};
+    decoded[ticker] = { source: 'stock', name: ticker, label: meta.name || ticker, provider: meta.source, dates, close: p.c.slice() };
+    return decoded[ticker];
+  }
+
+  function loadStock(ticker) {
+    if (raw[ticker]) return Promise.resolve(decode(ticker));
+    if (!pending[ticker]) {
+      pending[ticker] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'data/prices/' + encodeURIComponent(ticker) + '.js';
+        const fail = () => {
+          delete pending[ticker];
+          s.remove();
+          reject(new Error('โหลดข้อมูล ' + ticker + ' ไม่สำเร็จ'));
+        };
+        s.onload = () => (raw[ticker] ? resolve() : fail());
+        s.onerror = fail;
+        document.head.appendChild(s);
+      });
+    }
+    return pending[ticker].then(() => decode(ticker));
+  }
+
+  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock };
 })((window.QL = window.QL || {}));
