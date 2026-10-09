@@ -29,6 +29,9 @@
     ytd: { label: 'ตั้งแต่ต้นปี', num: true, value: (r) => r.ytd, cell: (r) => delta(r.ytd) },
     fh: { label: 'ห่างจุดสูงสุด 52 สัปดาห์', num: true, value: (r) => r.fh, cell: (r) => ({ text: r.fh == null ? '—' : r.fh > -0.0005 ? 'ที่จุดสูงสุด' : pct(r.fh) }) },
     vol: { label: 'ผันผวน/ปี', num: true, value: (r) => r.vol, cell: (r) => ({ text: r.vol == null ? '—' : (r.vol * 100).toFixed(0) + '%' }) },
+    d5: { label: '5 วัน', num: true, value: (r) => r.d5, cell: (r) => delta(r.d5) },
+    vr: { label: 'วอลุ่ม/ปกติ', num: true, value: (r) => r.vr, cell: (r) => ({ text: r.vr == null ? '—' : r.vr.toFixed(1) + ' เท่า' }) },
+    dv: { label: 'มูลค่า', num: true, value: (r) => r.dv, cell: (r) => ({ text: r.dv == null ? '—' : r.dv >= 1000 ? '$' + (r.dv / 1000).toFixed(1) + 'B' : '$' + r.dv.toFixed(1) + 'M' }) },
     rsi: { label: 'RSI', num: true, value: (r) => r.rsi, cell: (r) => ({ text: r.rsi == null ? '—' : r.rsi.toFixed(0) }) },
     gc: { label: 'เกิดเมื่อ', value: (r) => r.gc, cell: (r) => ({ text: ago(r.gc) }) },
     dc: { label: 'เกิดเมื่อ', value: (r) => r.dc, cell: (r) => ({ text: ago(r.dc) }) },
@@ -62,6 +65,7 @@
 
   const TABS = [
     { id: 'signals', label: 'สัญญาณล่าสุด' },
+    { id: 'movers', label: 'หุ้นซิ่งวันนี้' },
     { id: 'momentum', label: 'แรงส่ง (Momentum)' },
     { id: 'ytd', label: 'ปีนี้' },
     { id: 'all', label: 'ทั้งหมด' },
@@ -229,9 +233,49 @@
       return card('หุ้นทั้งหมดที่สแกน', 'กดหัวคอลัมน์เพื่อเรียงลำดับ · กดที่แถวเพื่อทดสอบกลยุทธ์กับหุ้นตัวนั้น', all.length, node, moreButton('all', all.length, 100));
     }
 
+    const MOVER_LISTS = [
+      ['gainers', 'ขึ้นแรงที่สุดวันนี้', 'เปลี่ยนแปลงจากราคาปิดวันก่อนหน้า', ['t', 'n', 'c', 'd1', 'vr', 'dv']],
+      ['volume', 'วอลุ่มพุ่งผิดปกติ', 'ปริมาณซื้อขายวันนี้เทียบค่าเฉลี่ย 20 วัน (ตั้งแต่ 2 เท่าขึ้นไป) มักมีข่าวหรือเหตุการณ์สำคัญ', ['t', 'n', 'c', 'vr', 'd1', 'dv']],
+      ['week', 'ซิ่ง 5 วัน', 'ขึ้นแรงที่สุดในรอบ 5 วันทำการ', ['t', 'n', 'c', 'd5', 'd1', 'vr']],
+      ['losers', 'ลงแรงที่สุดวันนี้', 'ร่วงหนักที่สุดจากราคาปิดวันก่อนหน้า', ['t', 'n', 'c', 'd1', 'vr', 'dv']],
+    ];
+
+    function renderMovers() {
+      const mv = QL.data.getMovers();
+      const frag = document.createDocumentFragment();
+      if (!mv) {
+        frag.appendChild(h('p', 'empty-state', 'ยังไม่มีข้อมูลหุ้นซิ่ง ระบบจะสร้างให้อัตโนมัติหลังตลาดสหรัฐปิด'));
+        return frag;
+      }
+      frag.appendChild(h('p', 'scan-note scan-warn',
+        'หุ้นซิ่งมีความเสี่ยงสูงมาก ราคาที่พุ่งแรงในวันเดียวมักมาจากข่าว ผลประกอบการ หรือการเก็งกำไร และกลับตัวได้รุนแรงในวันถัดไป ' +
+        'ไม่ควรไล่ซื้อตามโดยไม่มีแผนตัดขาดทุน'));
+      frag.appendChild(h('p', 'card-sub',
+        'สแกนหุ้นสามัญทุกตัวในตลาดสหรัฐที่ราคาตั้งแต่ $' + mv.minPrice + ' และมูลค่าซื้อขายเฉลี่ยตั้งแต่ $' + mv.minDollarVolumeM + 'M ต่อวัน รวม ' +
+        mv.universe.toLocaleString('en-US') + ' ตัว · ราคาปิดวันที่ ' + mv.asOf + ' · ตัวกรองกลุ่มอุตสาหกรรมและดัชนีไม่มีผลกับแท็บนี้'));
+      const q = state.q.trim().toLowerCase();
+      const match = (r) => !q || r.t.toLowerCase().includes(q) || r.n.toLowerCase().includes(q);
+      const grid = h('div', 'scan-grid');
+      for (const [key, title, desc, cols] of MOVER_LISTS) {
+        const all = (mv.lists[key] || []).filter(match);
+        const id = 'mv-' + key;
+        const shown = state.expanded[id] ? all : all.slice(0, 10);
+        const content = all.length
+          ? table(shown, cols, { rank: true, onOpen: (r) => onOpen(r.t, null), caption: title })
+          : h('p', 'empty-state scan-empty', 'ไม่มีหุ้นเข้าเงื่อนไข');
+        grid.appendChild(card(title, desc, all.length, content, moreButton(id, all.length, 10)));
+      }
+      frag.appendChild(grid);
+      return frag;
+    }
+
     function render() {
       if (!body) return;
       body.textContent = '';
+      if (state.tab === 'movers') {
+        body.appendChild(renderMovers());
+        return;
+      }
       const rows = filtered();
       if (!rows.length) {
         body.appendChild(h('p', 'empty-state', 'ไม่พบหุ้นที่ตรงกับตัวกรอง'));

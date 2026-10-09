@@ -147,6 +147,11 @@ code {
   background: var(--surface-2);
 }
 .scan-filters { align-items: center; }
+.scan-warn {
+  background: color-mix(in srgb, var(--bad-text) 9%, var(--surface-1));
+  color: var(--text-primary);
+  border-left: 3px solid var(--bad-text);
+}
 .scan-search {
   height: 36px;
   width: 220px;
@@ -176,9 +181,9 @@ code {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.scan-table td, .scan-table th { padding: 6px 8px; }
+.scan-table td, .scan-table th { padding: 6px 6px; }
 .scan-ticker { font-weight: 600; }
-.scan-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+.scan-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
 .scan-sector { color: var(--text-muted); }
 .scan-empty { padding: 20px 0; }
 .scan-more { justify-self: start; }
