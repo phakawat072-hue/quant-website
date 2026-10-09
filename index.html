@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuantLab Dashboard</title>
+  <meta name="description" content="แดชบอร์ด Quant สำหรับทดสอบกลยุทธ์เทรดย้อนหลัง (Backtest) พร้อมกราฟและตัวชี้วัดความเสี่ยง">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M6 22l6-7 5 4 9-11' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    try {
+      var saved = localStorage.getItem('ql-theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M6 22l6-7 5 4 9-11"/></svg>
+      <div>
+        <h1>QuantLab</h1>
+        <p class="brand-sub">ทดสอบกลยุทธ์เทรดเชิงปริมาณย้อนหลัง</p>
+      </div>
+    </div>
+    <button id="themeToggle" class="btn btn-ghost" type="button" aria-label="สลับธีมสว่าง/มืด">
+      <span class="theme-icon" aria-hidden="true"></span><span id="themeLabel">ธีม</span>
+    </button>
+  </header>
+
+  <main class="page">
+    <section class="controls" aria-label="ตัวกรองและการตั้งค่า">
+      <div class="control-row">
+        <div class="field asset-field">
+          <label class="field-label" for="assetSearch">ค้นหาหุ้น <kbd class="kbd" aria-hidden="true">/</kbd></label>
+          <div class="combo">
+            <svg class="combo-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+            <input id="assetSearch" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="assetList"
+              autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="พิมพ์ตัวย่อหรือชื่อ เช่น NVDA, Tesla">
+            <ul id="assetList" class="combo-list" role="listbox" aria-label="รายชื่อหุ้น" hidden></ul>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">ข้อมูลของคุณ</span>
+          <div class="inline">
+            <label class="btn btn-outline file-btn">
+              อัปโหลด CSV
+              <input id="csvInput" type="file" accept=".csv,text/csv,.txt">
+            </label>
+            <button id="keyBtn" class="btn btn-outline" type="button" aria-controls="livePanel">ตั้งค่า API key</button>
+            <button id="reseedBtn" class="btn btn-outline" type="button" title="สุ่มราคาจำลองชุดใหม่">สุ่มข้อมูลใหม่</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label" id="rangeLabel">ช่วงเวลา</span>
+          <div class="segmented" role="group" aria-labelledby="rangeLabel" id="rangeGroup">
+            <button type="button" data-range="1Y">1 ปี</button>
+            <button type="button" data-range="3Y">3 ปี</button>
+            <button type="button" data-range="5Y">5 ปี</button>
+            <button type="button" data-range="ALL">ทั้งหมด</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">กำหนดเอง</span>
+          <div class="inline">
+            <input id="startDate" type="date" aria-label="วันเริ่มต้น">
+            <span class="muted">ถึง</span>
+            <input id="endDate" type="date" aria-label="วันสิ้นสุด">
+          </div>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label class="field">
+          <span class="field-label">กลยุทธ์</span>
+          <select id="strategySelect"></select>
+        </label>
+        <div id="paramFields" class="inline param-fields"></div>
+        <label class="field field-sm">
+          <span class="field-label">ค่าธรรมเนียม (bps)</span>
+          <input id="costInput" type="number" min="0" max="200" step="0.5" value="5">
+        </label>
+        <label class="field field-sm">
+          <span class="field-label">Risk-free (%/ปี)</span>
+          <input id="rfInput" type="number" min="0" max="20" step="0.25" value="2">
+        </label>
+        <label class="check">
+          <input id="shortInput" type="checkbox">
+          <span>อนุญาต Short</span>
+        </label>
+      </div>
+      <div id="livePanel" class="live-panel" hidden>
+        <h2 class="live-title">ดึงราคาหุ้นสหรัฐได้ทุกตัว</h2>
+        <p class="live-desc">หุ้นยอดนิยม 46 ตัวโหลดได้ทันที ส่วนตัวอื่นจะดึงสดจาก Twelve Data ด้วย API key ของคุณ
+          สมัครฟรีที่ <a href="https://twelvedata.com" target="_blank" rel="noopener noreferrer">twelvedata.com</a>
+          (แพ็กเกจฟรีใช้ได้ 8 ครั้ง/นาที และ 800 ครั้ง/วัน) · key จะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+        <form id="keyForm" class="inline">
+          <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="วาง API key ที่นี่" aria-label="Twelve Data API key">
+          <button class="btn btn-primary" type="submit">บันทึกแล้วโหลด</button>
+          <button id="keyClear" class="btn btn-ghost" type="button">ลบ key</button>
+          <button id="keyClose" class="btn btn-ghost" type="button">ปิด</button>
+        </form>
+      </div>
+      <p id="dataInfo" class="strategy-desc"></p>
+      <p id="strategyDesc" class="strategy-desc"></p>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="kpis" aria-label="ตัวชี้วัดผลลัพธ์">
+      <article class="card hero">
+        <h2 class="kpi-label">ผลตอบแทนรวมของกลยุทธ์</h2>
+        <p id="heroValue" class="hero-value">—</p>
+        <p id="heroDelta" class="delta"></p>
+        <p id="heroSub" class="kpi-sub"></p>
+      </article>
+      <div id="kpiGrid" class="kpi-grid"></div>
+    </section>
+
+    <section class="grid">
+      <article class="card span-2" data-chart="equity">
+        <header class="card-head">
+          <div>
+            <h2>Equity Curve</h2>
+            <p class="card-sub">มูลค่าพอร์ต (เริ่มต้น 100) เทียบกับ Buy &amp; Hold</p>
+          </div>
+          <div class="card-actions">
+            <label class="check check-sm"><input id="logInput" type="checkbox"><span>สเกล Log</span></label>
+            <button class="btn btn-ghost btn-sm" type="button" data-toggle-table aria-pressed="false">ดูเป็นตาราง</button>
+            <button id="exportBtn" class="btn btn-ghost btn-sm" type="button">ดาวน์โหลด CSV</button>
+          </div>
+        </header>
+        <div class="chart" id="equityChart"></div>
+      </article>
+
+      <article class="card span-2" data-chart="price">
+        <header class="card-head">
+          <div>
+            <h2 id="priceTitle">ราคาและสัญญาณ</h2>
+            <p class="card-sub">ราคาปิด เส้นอินดิเคเตอร์ และจุดเปลี่ยนสถานะของกลยุทธ์</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-toggle-table aria-pressed="false">ดูเป็นตาราง</button>
+          </div>
+        </header>
+        <div class="chart" id="priceChart"></div>
+      </article>
+
+      <article class="card" data-chart="drawdown">
+        <header class="card-head">
+          <div>
+            <h2>Drawdown ของกลยุทธ์</h2>
+            <p class="card-sub">% ที่ลดลงจากจุดสูงสุดก่อนหน้า</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-toggle-table aria-pressed="false">ดูเป็นตาราง</button>
+          </div>
+        </header>
+        <div class="chart" id="ddChart"></div>
+      </article>
+
+      <article class="card" data-chart="hist">
+        <header class="card-head">
+          <div>
+            <h2>การกระจายผลตอบแทนรายวัน</h2>
+            <p class="card-sub" id="histSub">จำนวนวันในแต่ละช่วงผลตอบแทน</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-toggle-table aria-pressed="false">ดูเป็นตาราง</button>
+          </div>
+        </header>
+        <div class="chart" id="histChart"></div>
+      </article>
+
+      <article class="card span-2">
+        <header class="card-head">
+          <div>
+            <h2>ผลตอบแทนรายเดือน</h2>
+            <p class="card-sub">น้ำเงิน = กำไร · แดง = ขาดทุน · สีเข้มขึ้นตามขนาด</p>
+          </div>
+        </header>
+        <div class="chart" id="heatmap"></div>
+      </article>
+
+      <article class="card span-2">
+        <header class="card-head">
+          <div>
+            <h2>เปรียบเทียบกลยุทธ์</h2>
+            <p class="card-sub">ทุกกลยุทธ์บนสินทรัพย์ ช่วงเวลา และค่าธรรมเนียมเดียวกัน · คลิกแถวเพื่อเลือก</p>
+          </div>
+        </header>
+        <div id="compareTable"></div>
+      </article>
+
+      <article class="card span-2">
+        <header class="card-head">
+          <div>
+            <h2>บันทึกการเทรด</h2>
+            <p class="card-sub" id="tradeSub"></p>
+          </div>
+        </header>
+        <div id="tradeTable"></div>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <p>หุ้นยอดนิยมใช้ราคาปิดรายวันที่ปรับปันผลและการแตกหุ้นแล้ว จาก Yahoo Finance อัปเดตอัตโนมัติทุกวันทำการ<span id="dataUpdated"></span> · หุ้นตัวอื่นดึงสดจาก Twelve Data ด้วย API key ของคุณ · รายชื่อหุ้นจาก NASDAQ Trader · ข้อมูลอาจล่าช้าหรือคลาดเคลื่อน</p>
+      <p>เว็บนี้ใช้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน · ผลการทดสอบย้อนหลังไม่รับประกันผลตอบแทนในอนาคต</p>
+      <p>รองรับไฟล์ CSV ที่มีคอลัมน์ <code>Date</code> และ <code>Close</code> (หรือ <code>Adj Close</code>) เช่นไฟล์ที่ดาวน์โหลดจาก Yahoo Finance</p>
+    </footer>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="data/prices/index.js"></script>
+  <script src="data/symbols.js"></script>
+  <script src="js/live.js"></script>
+  <script src="js/strategies.js"></script>
+  <script src="js/backtest.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: Update stock prices
+
+on:
+  schedule:
+    - cron: '30 22 * * 1-5'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/fetch_prices.py'
+      - 'scripts/tickers.json'
+      - '.github/workflows/update-prices.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-prices-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install yfinance
+        run: pip install --upgrade yfinance
+
+      - name: Download prices
+        run: python scripts/fetch_prices.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data
+          if git diff --cached --quiet; then
+            echo "No data changes"
+            exit 0
+          fi
+          git commit -m "Update stock prices $(date -u +%F)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
