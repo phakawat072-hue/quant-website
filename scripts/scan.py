@@ -21,8 +21,8 @@ from fetch_prices import close_series
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "scan.js"
 UA = "Mozilla/5.0 (compatible; QuantLab-scanner/1.0; +https://github.com/phakawat072-hue/quant-website)"
-SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-NDX_URL = "https://en.wikipedia.org/wiki/Nasdaq-100"
+SP500_URLS = ["https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"]
+NDX_URLS = ["https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies", "https://en.wikipedia.org/wiki/Nasdaq-100"]
 SIGNAL_DAYS = 5  # a cross counts as "today's signal" if it happened in the last 5 sessions
 
 SECTOR_TH = {
@@ -82,13 +82,18 @@ def previous_rows() -> list[dict]:
 
 def universe() -> dict[str, dict]:
     members: dict[str, dict] = {}
-    for flag, url, lo, hi in (("S", SP500_URL, 450, 560), ("N", NDX_URL, 95, 130)):
-        try:
-            for sym, name, sector in constituents(url, lo, hi):
+    for flag, urls, lo, hi in (("S", SP500_URLS, 450, 560), ("N", NDX_URLS, 95, 130)):
+        for url in urls:
+            try:
+                found = constituents(url, lo, hi)
+            except Exception as e:  # Wikipedia layout or network change: try the next page
+                print(f"::warning::Could not read index members from {url}: {e}")
+                continue
+            for sym, name, sector in found:
                 m = members.setdefault(sym, {"n": name, "s": SECTOR_TH.get(sector, sector), "i": ""})
-                m["i"] += flag
-        except Exception as e:  # Wikipedia layout or network change: fall back below
-            print(f"::warning::Could not read index members from {url}: {e}")
+                if flag not in m["i"]:
+                    m["i"] += flag
+            break
     if len(members) < 400:
         print(f"::warning::Universe looks incomplete ({len(members)}); reusing the previous scan's members")
         for r in previous_rows():
