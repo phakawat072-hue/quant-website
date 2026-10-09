@@ -25,8 +25,8 @@ python3 -m http.server 8000
 
 ## ข้อมูลราคาหุ้น
 
-- GitHub Actions (`.github/workflows/update-prices.yml`) รัน `scripts/fetch-prices.mjs` ทุกวันจันทร์–ศุกร์ หลังตลาดสหรัฐปิด แล้ว commit ไฟล์ลง `data/prices/`
-- สั่งอัปเดตเองได้ที่แท็บ **Actions → Update stock prices → Run workflow** หรือรันในเครื่อง `node scripts/fetch-prices.mjs` (Node 18+)
+- GitHub Actions (`.github/workflows/update-prices.yml`) รัน `scripts/fetch_prices.py` (ใช้ไลบรารี yfinance) ทุกวันจันทร์–ศุกร์ หลังตลาดสหรัฐปิด แล้ว commit ไฟล์ลง `data/prices/`
+- สั่งอัปเดตเองได้ที่แท็บ **Actions → Update stock prices → Run workflow** หรือรันในเครื่อง `pip install yfinance && python scripts/fetch_prices.py`
 - เพิ่ม/ลบหุ้นได้ที่ `scripts/tickers.json` แล้วรัน workflow อีกครั้ง
 
 ## รูปแบบไฟล์ CSV

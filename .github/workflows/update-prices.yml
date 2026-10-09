@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'scripts/fetch-prices.mjs'
+      - 'scripts/fetch_prices.py'
       - 'scripts/tickers.json'
       - '.github/workflows/update-prices.yml'
 
@@ -22,14 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: 20
+          python-version: '3.12'
+
+      - name: Install yfinance
+        run: pip install --upgrade yfinance
 
       - name: Download prices
-        run: node scripts/fetch-prices.mjs
+        run: python scripts/fetch_prices.py
 
       - name: Commit updated data
         run: |
