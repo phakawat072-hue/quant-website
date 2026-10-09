@@ -381,7 +381,7 @@
   function deltaEl({ diff, text, higherIsBetter }) {
     const p = document.createElement('p');
     p.className = 'delta';
-    if (!isFinite(diff) || Math.abs(diff) < 1e-9) {
+    if (!isFinite(diff) || !/[1-9]/.test(text)) {
       p.textContent = '= เท่ากับ Buy & Hold';
       return p;
     }
