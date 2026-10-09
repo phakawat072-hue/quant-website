@@ -16,13 +16,14 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from fetch_prices import close_series
+from fetch_prices import clean_name, close_series
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "scan.js"
 UA = "Mozilla/5.0 (compatible; QuantLab-scanner/1.0; +https://github.com/phakawat072-hue/quant-website)"
 SP500_URLS = ["https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"]
-NDX_URLS = ["https://en.wikipedia.org/wiki/List_of_Nasdaq-100_companies", "https://en.wikipedia.org/wiki/Nasdaq-100"]
+NDX_URLS = ["https://api.nasdaq.com/api/quote/list-type/nasdaq100", "https://en.wikipedia.org/wiki/Nasdaq-100"]
+BROWSER_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 SIGNAL_DAYS = 5  # a cross counts as "today's signal" if it happened in the last 5 sessions
 
 SECTOR_TH = {
@@ -54,7 +55,22 @@ def find_col(cols: dict, *needles: str):
     return next((cols[c] for n in needles for c in cols if n in c), None)
 
 
+def nasdaq_api_members(url: str) -> list[tuple[str, str, str]]:
+    req = urllib.request.Request(url, headers={"User-Agent": BROWSER_UA, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as res:
+        body = json.loads(res.read().decode("utf-8", "replace"))
+    data = body.get("data") or {}
+    rows = (data.get("data") or {}).get("rows") or data.get("rows") or []
+    return [(str(r["symbol"]).strip().upper(), clean_name(str(r.get("companyName", r["symbol"]))), "")
+            for r in rows if r.get("symbol")]
+
+
 def constituents(url: str, min_rows: int, max_rows: int) -> list[tuple[str, str, str]]:
+    if "api.nasdaq.com" in url:
+        found = nasdaq_api_members(url)
+        if not (min_rows <= len(found) <= max_rows):
+            raise ValueError(f"unexpected member count {len(found)}")
+        return found
     seen = []
     for t in read_tables(url):
         if isinstance(t.columns, pd.MultiIndex):

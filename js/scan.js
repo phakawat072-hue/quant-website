@@ -19,7 +19,7 @@
   const COLS = {
     t: { label: 'หุ้น', value: (r) => r.t, cell: (r) => ({ text: r.t, cls: 'scan-ticker' }) },
     n: { label: 'ชื่อบริษัท', value: (r) => r.n, cell: (r) => ({ text: r.n, cls: 'scan-name' }) },
-    s: { label: 'กลุ่ม', value: (r) => r.s, cell: (r) => ({ text: r.s, cls: 'scan-sector' }) },
+    s: { label: 'กลุ่ม', value: (r) => r.s, cell: (r) => ({ text: r.s || '—', cls: 'scan-sector' }) },
     c: { label: 'ราคา', num: true, value: (r) => r.c, cell: (r) => ({ text: price(r.c) }) },
     d1: { label: 'วันล่าสุด', num: true, value: (r) => r.d1, cell: (r) => delta(r.d1) },
     m1: { label: '1 เดือน', num: true, value: (r) => r.m1, cell: (r) => delta(r.m1) },
