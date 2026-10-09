@@ -20,13 +20,15 @@
   }
 
   const MAX_RESULTS = 60;
+  // Among equal ranks, the shorter ticker/name is usually the one people mean.
+  const tieLength = (x) => (x.r === 2 || x.r === 3 || x.r === 5 ? x.it.name.length : squash(x.it.ticker).length);
 
   function search(items, query) {
     if (!query.trim()) return items.filter((it) => !it.searchOnly);
     return items
       .map((it, i) => ({ it, r: rank(it, query), i }))
       .filter((x) => x.r >= 0)
-      .sort((a, b) => a.r - b.r || a.i - b.i)
+      .sort((a, b) => a.r - b.r || !!a.it.searchOnly - !!b.it.searchOnly || tieLength(a) - tieLength(b) || a.i - b.i)
       .map((x) => x.it);
   }
 
