@@ -218,5 +218,10 @@
   function setScan(s) { scan = s; }
   function getScan() { return scan; }
 
-  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols, setScan, getScan };
+  // Daily big movers across all US stocks (data/movers.js, written by scripts/movers.py)
+  let movers = null;
+  function setMovers(m) { movers = m; }
+  function getMovers() { return movers; }
+
+  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols, setScan, getScan, setMovers, getMovers };
 })((window.QL = window.QL || {}));

@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/fetch_prices.py'
       - 'scripts/scan.py'
+      - 'scripts/movers.py'
       - 'scripts/tickers.json'
       - '.github/workflows/update-prices.yml'
 
@@ -21,7 +22,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -37,6 +38,12 @@ jobs:
 
       - name: Scan S&P 500 + Nasdaq-100
         run: python scripts/scan.py
+
+      # Thousands of tickers: if Yahoo throttles, keep yesterday's list rather than fail the job.
+      - name: Daily movers across all US stocks
+        continue-on-error: true
+        timeout-minutes: 25
+        run: python scripts/movers.py
 
       - name: Commit updated data
         run: |

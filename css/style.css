@@ -147,6 +147,11 @@ code {
   background: var(--surface-2);
 }
 .scan-filters { align-items: center; }
+.scan-warn {
+  background: color-mix(in srgb, var(--bad-text) 9%, var(--surface-1));
+  color: var(--text-primary);
+  border-left: 3px solid var(--bad-text);
+}
 .scan-search {
   height: 36px;
   width: 220px;
