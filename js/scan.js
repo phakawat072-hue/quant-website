@@ -31,7 +31,7 @@
     vol: { label: 'ผันผวน/ปี', num: true, value: (r) => r.vol, cell: (r) => ({ text: r.vol == null ? '—' : (r.vol * 100).toFixed(0) + '%' }) },
     d5: { label: '5 วัน', num: true, value: (r) => r.d5, cell: (r) => delta(r.d5) },
     vr: { label: 'วอลุ่ม/ปกติ', num: true, value: (r) => r.vr, cell: (r) => ({ text: r.vr == null ? '—' : r.vr.toFixed(1) + ' เท่า' }) },
-    dv: { label: 'มูลค่าซื้อขาย', num: true, value: (r) => r.dv, cell: (r) => ({ text: r.dv == null ? '—' : r.dv >= 1000 ? '$' + (r.dv / 1000).toFixed(1) + 'B' : '$' + r.dv.toFixed(1) + 'M' }) },
+    dv: { label: 'มูลค่า', num: true, value: (r) => r.dv, cell: (r) => ({ text: r.dv == null ? '—' : r.dv >= 1000 ? '$' + (r.dv / 1000).toFixed(1) + 'B' : '$' + r.dv.toFixed(1) + 'M' }) },
     rsi: { label: 'RSI', num: true, value: (r) => r.rsi, cell: (r) => ({ text: r.rsi == null ? '—' : r.rsi.toFixed(0) }) },
     gc: { label: 'เกิดเมื่อ', value: (r) => r.gc, cell: (r) => ({ text: ago(r.gc) }) },
     dc: { label: 'เกิดเมื่อ', value: (r) => r.dc, cell: (r) => ({ text: ago(r.dc) }) },

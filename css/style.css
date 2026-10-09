@@ -181,9 +181,9 @@ code {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.scan-table td, .scan-table th { padding: 6px 8px; }
+.scan-table td, .scan-table th { padding: 6px 6px; }
 .scan-ticker { font-weight: 600; }
-.scan-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+.scan-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
 .scan-sector { color: var(--text-muted); }
 .scan-empty { padding: 20px 0; }
 .scan-more { justify-self: start; }
