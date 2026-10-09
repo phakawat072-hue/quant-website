@@ -722,7 +722,52 @@
   }
 
   // ---------- init ----------
+  // ---------- views (backtest / scan) ----------
+  const scanView = QL.scanView.init({ container: $('scanView'), onOpen: openTicker });
+
+  function route() {
+    const view = location.hash === '#scan' ? 'scan' : 'backtest';
+    $('scanView').hidden = view !== 'scan';
+    $('backtestView').hidden = view !== 'backtest';
+    for (const a of document.querySelectorAll('.view-nav a')) {
+      if (a.dataset.view === view) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
+    if (view === 'scan') scanView.show();
+  }
+
+  function goToBacktest() {
+    if (location.hash !== '#scan') return;
+    try {
+      history.pushState(null, '', location.pathname + location.search);
+    } catch (e) {
+      location.hash = '';
+    }
+    route();
+  }
+
+  function openTicker(ticker, hint) {
+    const key = symbolKey(ticker);
+    const items = assetItems();
+    const found = items.find((it) => it.id.startsWith('stock:') && symbolKey(it.ticker) === key) ||
+      items.find((it) => it.id.startsWith('live:') && symbolKey(it.ticker) === key);
+    state.assetId = found ? found.id : 'live:' + ticker;
+    if (hint && STRATEGIES[hint.strategy]) {
+      Object.assign(state.params[hint.strategy], hint.params || {});
+      state.strategy = hint.strategy;
+      $('strategySelect').value = hint.strategy;
+      buildParams();
+    }
+    goToBacktest();
+    window.scrollTo(0, 0);
+    loadAndRun();
+  }
+
+  window.addEventListener('hashchange', route);
+  window.addEventListener('popstate', route);
+
   buildControls();
+  route();
   loadAndRun();
 
   let lastWidth = 0, raf = 0;

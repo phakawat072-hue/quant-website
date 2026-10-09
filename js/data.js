@@ -213,5 +213,10 @@
   function setSymbols(list) { symbols = list; }
   function getSymbols() { return symbols; }
 
-  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols };
+  // Daily scanner output (data/scan.js, written by scripts/scan.py)
+  let scan = null;
+  function setScan(s) { scan = s; }
+  function getScan() { return scan; }
+
+  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols, setScan, getScan };
 })((window.QL = window.QL || {}));
