@@ -880,6 +880,127 @@
     box.appendChild(ss);
 
     box.appendChild(sweepSection());
+    box.appendChild(bootstrapSection());
+    box.appendChild(walkForwardSection());
+  }
+
+  // Positions for the current strategy, memoised so the sweep and walk-forward share signals.
+  let sigCache = { tag: null, map: new Map() };
+  function signalFor(p) {
+    const tag = state.strategy + '|' + state.allowShort;
+    if (sigCache.data !== state.data || sigCache.tag !== tag) sigCache = { data: state.data, tag, map: new Map() };
+    const k = JSON.stringify(p);
+    if (!sigCache.map.has(k)) sigCache.map.set(k, STRATEGIES[state.strategy].signal(state.data.close, p, state.allowShort, state.data.dates));
+    return sigCache.map.get(k);
+  }
+
+  // 5. Bootstrap confidence intervals: how much of the result could be luck?
+  function bootstrapSection() {
+    const sec = mathSection('ผลนี้เป็นฝีมือหรือโชค? (Bootstrap)',
+      'สุ่มเรียงผลตอบแทนรายวันของกลยุทธ์ใหม่ 1,000 รอบ (สุ่มเป็นก้อนละ 20 วัน เพื่อให้วันที่ติดกันยังอยู่ด้วยกัน) แล้วดูว่า Sharpe และ CAGR แกว่งได้กว้างแค่ไหน ถ้าช่วงคร่อม 0 แปลว่าผลที่เห็นอาจเกิดจากโชค · Paulos หน้า 63–67');
+    const r = state.res;
+    const ppy = (r.times.length - 1) / r.metrics.years;
+    const bs = BT.bootstrap(r.rets.slice(1), ppy, { rfPct: state.rf });
+    const bb = BT.bootstrap(r.benchRets.slice(1), ppy, { rfPct: state.rf });
+    if (!bs || !bb) {
+      sec.appendChild(mk('p', 'empty-state scan-empty', 'ข้อมูลสั้นเกินไป ต้องมีอย่างน้อยประมาณ 3 เดือน'));
+      return sec;
+    }
+    const range = (a, f) => f(a[0]) + ' ถึง ' + f(a[2]);
+    const tiles = mk('div', 'math-tiles');
+    tiles.append(
+      mathTile('Sharpe ช่วง 90%', range(bs.sharpe, num),
+        'ค่ากลาง ' + num(bs.sharpe[1]) + ' (ที่เห็นจริง ' + num(r.metrics.sharpe) + ') · Buy & Hold ' + range(bb.sharpe, num), '63–67'),
+      mathTile('CAGR ช่วง 90%', range(bs.cagr, (v) => pct(v)),
+        'ค่ากลาง ' + pct(bs.cagr[1]) + ' · Buy & Hold ' + range(bb.cagr, (v) => pct(v)), '63–67'),
+      mathTile('โอกาสที่ Sharpe > 0', pct(bs.pPositive, 0, false),
+        'สัดส่วนของ 1,000 รอบที่กลยุทธ์ยังได้ Sharpe เป็นบวก · Buy & Hold ' + pct(bb.pPositive, 0, false), '63–67'));
+    sec.appendChild(tiles);
+    const solid = bs.sharpe[0] > 0;
+    sec.appendChild(verdict(solid, solid
+      ? 'ช่วง 90% ของ Sharpe อยู่เหนือ 0 ทั้งหมด ผลนี้ไม่น่าเกิดจากโชคล้วน ๆ (แต่ยังไม่รับประกันอนาคต)'
+      : 'ช่วง 90% ของ Sharpe คร่อม 0 ผลที่เห็นอาจเกิดจากโชค ต้องมีข้อมูลยาวกว่านี้หรือกลยุทธ์ที่ได้เปรียบชัดกว่านี้'));
+    return sec;
+  }
+
+  // 6. Walk-forward: re-pick the parameters every year from the previous 2 years, trade the next year.
+  let wfCache = null;
+  const WF_TRAIN = 504, WF_TEST = 252;
+
+  function walkForwardSection() {
+    const sec = mathSection('Walk-forward: เลือกค่าใหม่ทุกปี แล้วทดสอบปีถัดไป',
+      'ทุกปีเลือกพารามิเตอร์ที่ Sharpe ดีที่สุดจาก 2 ปีก่อนหน้า (49 คู่เดียวกับตารางด้านบน) แล้วใช้ค่านั้นเทรดปีถัดไปที่ยังไม่เคยเห็น ทำซ้ำไปเรื่อย ๆ เหมือนการใช้งานจริง ผลรวมของทุกปีทดสอบคือผลที่คาดหวังได้สมจริงกว่าการปรับค่าครั้งเดียว · Paulos หน้า 28–30, 44');
+    const strat = STRATEGIES[state.strategy];
+    const defs = strat.params.slice(0, 2);
+    if (!defs.length) {
+      sec.appendChild(mk('p', 'card-sub', 'กลยุทธ์นี้ไม่มีพารามิเตอร์ให้เลือก เลือกกลยุทธ์อื่น เช่น SMA Crossover เพื่อดู walk-forward'));
+      return sec;
+    }
+    const s = state.s, e = state.e;
+    if (e - s < WF_TRAIN + 60) {
+      sec.appendChild(mk('p', 'empty-state scan-empty', 'ช่วงเวลาสั้นเกินไป ต้องมีอย่างน้อยประมาณ 2 ปีครึ่ง เลือกช่วง 5 ปีขึ้นไป'));
+      return sec;
+    }
+    const cur = state.params[state.strategy];
+    const opts = { costBps: state.costBps, rf: state.rf, stop: state.stop };
+    const key = JSON.stringify([state.strategy, s, e, opts, state.allowShort, strat.params.slice(2).map((d) => cur[d.key])]);
+    if (!wfCache || wfCache.data !== state.data || wfCache.key !== key) {
+      let combos = [{}];
+      for (const d of defs) combos = combos.flatMap((c) => BT.gridValues(d).map((v) => Object.assign({}, c, { [d.key]: v })));
+      const cands = [];
+      for (const c of combos) {
+        const p = Object.assign({}, cur, c);
+        if (strat.validate && strat.validate(p)) continue;
+        cands.push({ params: p, pos: signalFor(p) });
+      }
+      wfCache = { data: state.data, key, cands, wf: BT.walkForward(state.data, cands, s, e, opts, WF_TRAIN, WF_TEST) };
+    }
+    const { cands, wf } = wfCache;
+    if (!wf) {
+      sec.appendChild(mk('p', 'card-sub', 'ไม่มีช่วงทดสอบที่ใช้ได้'));
+      return sec;
+    }
+    const d = state.data;
+    const span = (a, b) => isoDate(d.dates[a]) + ' ถึง ' + isoDate(d.dates[b]);
+    const pick = (p) => defs.map((x) => x.label.replace(/\s*\(.*\)/, '') + ' ' + p[x.key]).join(', ');
+    C.table(sec.appendChild(mk('div')), [
+      { key: 'train', label: 'ช่วงเลือกค่า (2 ปี)' },
+      { key: 'test', label: 'ช่วงทดสอบ' },
+      { key: 'pick', label: 'ค่าที่เลือก' },
+      { key: 'trainSharpe', label: 'Sharpe ตอนเลือก', num: true },
+      { key: 'testSharpe', label: 'Sharpe ทดสอบ', num: true },
+      { key: 'ret', label: 'ผลตอบแทนทดสอบ', num: true },
+      { key: 'bh', label: 'Buy & Hold', num: true },
+    ], wf.folds.map((f) => ({
+      train: span(f.trainS, f.testS),
+      test: span(f.testS, f.testE),
+      pick: pick(cands[f.best].params),
+      trainSharpe: num(f.trainSharpe),
+      testSharpe: num(f.test.metrics.sharpe),
+      ret: { text: (f.test.metrics.total >= 0 ? '▲ ' : '▼ ') + pct(f.test.metrics.total), cls: f.test.metrics.total >= 0 ? 'is-good' : 'is-bad' },
+      bh: pct(f.test.benchMetrics.total),
+    })), { caption: 'ผล walk-forward แยกตามปีทดสอบ' });
+
+    const t0 = wf.folds[0].testS;
+    const fixed = runStrategy(state.strategy, cur, { s: t0, e }).res;
+    const row = (name, m) => ({ name, cagr: pct(m.cagr), sharpe: num(m.sharpe), dd: pct(m.maxDD) });
+    C.table(sec.appendChild(mk('div')), [
+      { key: 'name', label: 'รวมทุกช่วงทดสอบ (' + span(t0, e) + ')' },
+      { key: 'cagr', label: 'CAGR', num: true },
+      { key: 'sharpe', label: 'Sharpe', num: true },
+      { key: 'dd', label: 'Max DD', num: true },
+    ], [
+      row('Walk-forward (เลือกค่าใหม่ทุกปี)', wf.metrics),
+      row('ค่าที่ใช้อยู่ตอนนี้ (' + pick(cur) + ')', fixed.metrics),
+      row('Buy & Hold', wf.benchMetrics),
+    ], { caption: 'เทียบ walk-forward กับค่าคงที่และ Buy & Hold' });
+
+    const m = wf.metrics, ok = m.sharpe > 0 && m.sharpe >= wf.benchMetrics.sharpe;
+    sec.appendChild(verdict(ok, ok
+      ? 'เลือกค่าจากอดีตแล้วยังได้ Sharpe ' + num(m.sharpe) + ' ไม่แพ้ Buy & Hold (' + num(wf.benchMetrics.sharpe) + ') ในช่วงที่ไม่เคยเห็น'
+      : 'เมื่อเลือกค่าจากอดีตแบบไม่รู้อนาคต ได้ Sharpe ' + num(m.sharpe) + ' แพ้ Buy & Hold (' + num(wf.benchMetrics.sharpe) + ') ในช่วงเดียวกัน การถือเฉย ๆ ดีกว่ากลยุทธ์นี้'));
+    sec.appendChild(mk('p', 'sweep-axis', 'หมายเหตุ: ทุกช่วงทดสอบเริ่มจากถือเงินสดแล้วเข้าซื้อใหม่ จึงมีค่าธรรมเนียมเพิ่มเล็กน้อย'));
+    return sec;
   }
 
   // 4. Parameter sweep: pick the best first-half Sharpe, then see how it ranks in the second half.
@@ -911,7 +1032,7 @@
         for (const a of xs) {
           const p = Object.assign({}, cur, { [d1.key]: a, [d2.key]: b });
           if (strat.validate && strat.validate(p)) { ri.push(null); ro.push(null); continue; }
-          const pos = strat.signal(state.data.close, p, state.allowShort, state.data.dates);
+          const pos = signalFor(p);
           const o = { costBps: state.costBps, rf: state.rf, stop: state.stop };
           ri.push(BT.run(state.data, pos, s, mid, o).metrics.sharpe);
           ro.push(BT.run(state.data, pos, mid, e, o).metrics.sharpe);

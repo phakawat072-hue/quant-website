@@ -194,6 +194,91 @@
     return out;
   }
 
+  // Seeded PRNG (mulberry32) so resampled results don't flicker between re-renders.
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Circular block bootstrap of daily returns: resample blocks of `block` days (keeps short-run
+  // autocorrelation) and report 5/50/95th percentiles of annualised Sharpe and CAGR.
+  function bootstrap(r, ppy, opts) {
+    const o = Object.assign({ n: 1000, block: 20, seed: 7, rfPct: 0 }, opts);
+    const x = r.filter(isFinite);
+    const m = x.length;
+    if (m < 60) return null;
+    const rand = rng(o.seed);
+    const rfDaily = o.rfPct / 100 / ppy;
+    const sh = new Array(o.n), cg = new Array(o.n);
+    for (let k = 0; k < o.n; k++) {
+      let sum = 0, sum2 = 0, logSum = 0;
+      for (let i = 0; i < m;) {
+        const start = Math.floor(rand() * m);
+        for (let j = 0; j < o.block && i < m; j++, i++) {
+          const v = x[(start + j) % m];
+          sum += v;
+          sum2 += v * v;
+          logSum += Math.log(1 + v);
+        }
+      }
+      const mean = sum / m;
+      const sd = Math.sqrt(Math.max(sum2 / m - mean * mean, 0) * m / (m - 1));
+      sh[k] = sd > 0 ? ((mean - rfDaily) / sd) * Math.sqrt(ppy) : 0;
+      cg[k] = Math.exp((logSum / m) * ppy) - 1;
+    }
+    const q = (a, p) => a[Math.min(a.length - 1, Math.max(0, Math.round(p * (a.length - 1))))];
+    sh.sort((a, b) => a - b);
+    cg.sort((a, b) => a - b);
+    return {
+      sharpe: [q(sh, 0.05), q(sh, 0.5), q(sh, 0.95)],
+      cagr: [q(cg, 0.05), q(cg, 0.5), q(cg, 0.95)],
+      pPositive: sh.filter((v) => v > 0).length / o.n,
+      n: o.n,
+      block: o.block,
+    };
+  }
+
+  // Rolling walk-forward: on each train window pick the candidate with the best Sharpe, then
+  // trade it on the following test window. cands = [{ params, pos }] with positions precomputed.
+  // Test windows are stitched into one out-of-sample series; each window starts flat.
+  function walkForward(data, cands, s, e, opts, trainLen, testLen) {
+    const folds = [];
+    const times = [], rets = [], bRets = [];
+    for (let t0 = s + trainLen; t0 + 20 <= e; t0 += testLen) {
+      const t1 = Math.min(t0 + testLen, e);
+      let best = 0, bestSharpe = -Infinity;
+      cands.forEach((c, i) => {
+        const sh = run(data, c.pos, t0 - trainLen, t0, opts).metrics.sharpe;
+        if (sh > bestSharpe) { bestSharpe = sh; best = i; }
+      });
+      const test = run(data, cands[best].pos, t0, t1, opts);
+      folds.push({ trainS: t0 - trainLen, testS: t0, testE: t1, best, trainSharpe: bestSharpe, test });
+      const from = times.length ? 1 : 0;
+      for (let k = from; k < test.times.length; k++) {
+        times.push(test.times[k]);
+        rets.push(test.rets[k]);
+        bRets.push(test.benchRets[k]);
+      }
+    }
+    if (!folds.length) return null;
+    const curve = (rr) => { let v = 100; return rr.map((x) => (v *= 1 + x)); };
+    const eq = curve(rets), beq = curve(bRets);
+    return {
+      folds,
+      times,
+      equity: eq,
+      benchEquity: beq,
+      metrics: metrics(times, eq, rets, null, null, opts.rf || 0),
+      benchMetrics: metrics(times, beq, bRets, null, null, opts.rf || 0),
+    };
+  }
+
   function monthlyReturns(times, equity) {
     const rows = new Map();
     let prevEnd = 100;
@@ -235,5 +320,5 @@
     return bins;
   }
 
-  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta, gridValues };
+  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta, gridValues, bootstrap, walkForward };
 })((window.QL = window.QL || {}));
