@@ -9,6 +9,7 @@ on:
       - 'scripts/fetch_prices.py'
       - 'scripts/scan.py'
       - 'scripts/movers.py'
+      - 'scripts/fundamentals.py'
       - 'scripts/tickers.json'
       - '.github/workflows/update-prices.yml'
 
@@ -25,6 +26,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 400  # fundamentals.py reads a human commit author email for the SEC User-Agent
 
       - uses: actions/setup-python@v5
         with:
@@ -44,6 +47,12 @@ jobs:
         continue-on-error: true
         timeout-minutes: 25
         run: python scripts/movers.py
+
+      # SEC EDGAR annual reports (P/E, P/B, dividends). Keep the previous file if SEC is unreachable.
+      - name: Fundamentals from SEC EDGAR
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python scripts/fundamentals.py
 
       - name: Commit updated data
         run: |

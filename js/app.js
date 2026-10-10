@@ -487,8 +487,51 @@
     renderHeatmap();
     renderCompare();
     renderTrades();
+    renderFund();
     renderMath();
     document.body.classList.remove('is-busy');
+  }
+
+  // ---------- fundamentals (SEC 10-K, point in time) ----------
+  function renderFund() {
+    const card = $('fundCard'), body = $('fundBody'), d = state.data;
+    const rows = d.source === 'stock' ? QL.data.fundRows(d.name) : null;
+    card.hidden = !rows || !rows.length;
+    if (card.hidden) return;
+    body.textContent = '';
+    const last = d.close.length - 1;
+    const px = d.close[last];
+    const cur = QL.data.fundAt(d.name, d.dates[last]);
+    const ratio = (a, b) => (b > 0 ? num(a / b, 1) + ' เท่า' : b < 0 ? 'ขาดทุน' : '—');
+    const yld = (a) => (a == null || !isFinite(a) ? '—' : pct(a / px, 1, false));
+    if (cur) {
+      const tiles = mk('div', 'math-tiles fund-tiles');
+      tiles.append(
+        mathTile('P/E ล่าสุด', ratio(px, cur.eps), 'ราคาตอนนี้หารกำไรต่อหุ้นปีงบ ' + cur.end.slice(0, 4) + ' · ตลาดโดยรวมมักอยู่ราว 15–25 เท่า', '99–104'),
+        mathTile('P/B ล่าสุด', cur.bvps ? ratio(px, cur.bvps) : '—', 'ราคาหารมูลค่าทางบัญชีต่อหุ้น · หุ้น P/B ต่ำเคยให้ผลตอบแทนดีกว่าในอดีต (Fama-French)', '105–106'),
+        mathTile('Earnings yield / ปันผล', yld(cur.eps) + ' / ' + yld(cur.dps), 'กำไรต่อราคา (กลับด้านของ P/E) และเงินปันผลต่อราคา ต่อปี', '99–105'));
+      body.append(tiles);
+    }
+    const at = (t) => { let i = d.dates.findIndex((x) => x >= t); return i < 0 ? last : i; };
+    C.table(body.appendChild(mk('div')), [
+      { key: 'fy', label: 'สิ้นปีงบ' },
+      { key: 'filed', label: 'วันประกาศ' },
+      { key: 'eps', label: 'กำไร/หุ้น', num: true },
+      { key: 'bvps', label: 'บัญชี/หุ้น', num: true },
+      { key: 'dps', label: 'ปันผล/หุ้น', num: true },
+      { key: 'pe', label: 'P/E วันประกาศ', num: true },
+      { key: 'pb', label: 'P/B วันประกาศ', num: true },
+    ], rows.slice().reverse().map((r) => {
+      const p = d.close[at(r.filed)];
+      return {
+        fy: r.end, filed: isoDate(r.filed),
+        eps: r.eps == null ? '—' : num(r.eps), bvps: r.bvps == null ? '—' : num(r.bvps), dps: r.dps == null ? '—' : num(r.dps),
+        pe: r.eps > 0 ? num(p / r.eps, 1) : r.eps < 0 ? 'ขาดทุน' : '—', pb: r.bvps > 0 ? num(p / r.bvps, 1) : '—',
+      };
+    }), { caption: 'งบการเงินรายปี' });
+    const f = QL.data.getFundamentals();
+    body.append(mk('p', 'sweep-axis', 'ตัวเลขต่อหุ้นปรับตามการแตกหุ้นและปันผลให้ตรงกับราคาในกราฟ จึงอาจไม่ตรงกับตัวเลขในงบต้นฉบับ · ข้อมูล ' +
+      f.source + ' อัปเดต ' + f.updated + ' · ใช้งบปีเท่านั้น จึงอาจช้ากว่าข้อมูลรายไตรมาสได้ถึง 1 ปี'));
   }
 
   // ---------- KPIs ----------
@@ -1237,18 +1280,19 @@
   // ---------- views (backtest / scan) ----------
   const scanView = QL.scanView.init({ container: $('scanView'), onOpen: openTicker });
   const portfolioView = QL.portfolioView.init({ container: $('portfolioView'), onShare: (url, btn) => copyLink(url, btn) });
+  const glossaryView = QL.glossaryView.init({ container: $('glossaryView') });
 
   function route() {
-    const view = location.hash === '#scan' ? 'scan' : location.hash === '#portfolio' ? 'portfolio' : 'backtest';
-    $('scanView').hidden = view !== 'scan';
-    $('portfolioView').hidden = view !== 'portfolio';
+    const views = { scan: scanView, portfolio: portfolioView, glossary: glossaryView };
+    const key = location.hash.slice(1);
+    const view = views[key] ? key : 'backtest';
+    for (const v of Object.keys(views)) $(v + 'View').hidden = view !== v;
     $('backtestView').hidden = view !== 'backtest';
     for (const a of document.querySelectorAll('.view-nav a')) {
       if (a.dataset.view === view) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     }
-    if (view === 'scan') scanView.show();
-    if (view === 'portfolio') portfolioView.show();
+    if (views[view]) views[view].show();
   }
 
   function goToBacktest() {

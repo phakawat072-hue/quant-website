@@ -223,5 +223,27 @@
   function setMovers(m) { movers = m; }
   function getMovers() { return movers; }
 
-  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols, setScan, getScan, setMovers, getMovers };
+  // Annual SEC fundamentals (data/fundamentals.js, written by scripts/fundamentals.py).
+  // Each row is usable from its filing date; per-share values match the adjusted price basis.
+  let fundamentals = null;
+  const fundCache = {};
+  function setFundamentals(f) { fundamentals = f; }
+  function getFundamentals() { return fundamentals; }
+  function fundRows(ticker) {
+    if (fundCache[ticker]) return fundCache[ticker];
+    const raw = fundamentals && fundamentals.t[ticker];
+    fundCache[ticker] = raw ? raw.map(([filed, end, eps, bvps, dps]) => ({ filed: Date.parse(filed + 'T00:00:00Z'), end, eps, bvps, dps })) : null;
+    return fundCache[ticker];
+  }
+  // Latest row filed on or before time t (point in time), or null.
+  function fundAt(ticker, t) {
+    const rows = fundRows(ticker);
+    if (!rows) return null;
+    let hit = null;
+    for (const r of rows) { if (r.filed <= t) hit = r; else break; }
+    return hit;
+  }
+
+  QL.data = { ASSETS, simulate, parseCsv, DAY, setManifest, getManifest, register, loadStock, setSymbols, getSymbols, setScan, getScan, setMovers, getMovers,
+    setFundamentals, getFundamentals, fundRows, fundAt };
 })((window.QL = window.QL || {}));
