@@ -6,6 +6,7 @@ also works when opened straight from disk (`file://`).
 
 - Live site: https://phakawat072-hue.github.io/quant-website/ (GitHub Pages, `main` branch, repo root)
 - Scanner view: same page with `#scan`
+- Portfolio view: same page with `#portfolio`
 
 ## Working with the user
 
@@ -35,6 +36,7 @@ also works when opened straight from disk (`file://`).
 | `js/search.js` | Accessible stock-search combobox (`/` shortcut) |
 | `js/live.js` | Live daily prices from Twelve Data using the viewer's own API key (localStorage, 12 h cache) |
 | `js/scan.js` | Scanner view: signals, hot stocks (movers), momentum, YTD, full table |
+| `js/portfolio.js` | Portfolio view: aligns bundled tickers, long-only weights (equal, inverse vol, min variance, max Sharpe via projected gradient), periodic rebalancing on trailing 1-year estimates, correlation heatmap, efficient-frontier scatter |
 | `js/app.js` | State, controls, rendering, routing between views |
 | `data/prices/*.js` | Bundled adjusted daily closes for the tickers in `scripts/tickers.json` (generated) |
 | `data/symbols.js` | Every US-listed stock/ETF from NASDAQ Trader for search (generated) |
@@ -121,6 +123,7 @@ Market* (2003). Features built from it, with the page numbers shown in the UI:
 | Parameter-sweep heatmaps (first-half Sharpe picks, second-half Sharpe tests; click a cell to apply) | 28–30, 44 |
 | Bootstrap 90% intervals for Sharpe/CAGR and P(Sharpe > 0) | 63–67 |
 | Walk-forward (pick best of the sweep on 2 years, trade the next year, roll) | 28–30, 44 |
+| Multi-stock portfolio: diversification, covariance, efficient frontier, Sharpe-based weights, systematic risk | 141–162 |
 
 The sweep uses the strategy's first two params, 7 values each around the defaults
 (`BT.gridValues`), and caches by data + window + settings so re-renders are cheap.

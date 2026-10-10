@@ -449,6 +449,67 @@
     container.appendChild(scale);
   }
 
+  // Risk/return scatter. cfg: { groups:[{name, color, shape:'dot'|'rect'}], points:[{x, y, group, label, name}],
+  //   line:[{x, y}] (drawn in series colour cfg.lineColor), lineName, xFormat, yFormat, xLabel, yLabel, height, ariaLabel }
+  function scatter(container, cfg) {
+    container.textContent = '';
+    const items = cfg.groups.map((g) => ({ name: g.name, color: colorVar(g.color), shape: g.shape === 'rect' ? 'rect' : 'dot' }));
+    if (cfg.line && cfg.line.length) items.unshift({ name: cfg.lineName, color: colorVar(cfg.lineColor || 1) });
+    legend(container, items);
+    const wrap = h('div', 'chart-wrap');
+    container.appendChild(wrap);
+    const W = Math.max(280, wrap.clientWidth || container.clientWidth);
+    const H = cfg.height || 340;
+    const m = { t: 14, r: 56, b: 42, l: 60 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const all = cfg.points.concat(cfg.line || []);
+    const xs = all.map((p) => p.x), ys = all.map((p) => p.y);
+    const sx = linearScale(Math.min(0, ...xs), Math.max(...xs), Math.max(3, Math.floor(pw / 90)));
+    const sy = linearScale(Math.min(0, ...ys), Math.max(...ys), Math.max(3, Math.floor(ph / 50)));
+    const X = (v) => m.l + sx.map(v, pw), Y = (v) => m.t + ph - sy.map(v, ph);
+
+    const svg = svgEl('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'chart-svg', role: 'img', 'aria-label': cfg.ariaLabel || '' });
+    wrap.appendChild(svg);
+    const grid = svgEl('g', {}, svg);
+    for (const v of sy.ticks) {
+      svgEl('line', { x1: m.l, x2: m.l + pw, y1: Y(v), y2: Y(v), class: 'grid' }, grid);
+      svgEl('text', { x: m.l - 8, y: Y(v) + 4, class: 'tick', 'text-anchor': 'end' }, grid).textContent = cfg.yFormat(v);
+    }
+    for (const v of sx.ticks) {
+      svgEl('text', { x: X(v), y: m.t + ph + 16, class: 'tick', 'text-anchor': 'middle' }, grid).textContent = cfg.xFormat(v);
+    }
+    svgEl('line', { x1: m.l, x2: m.l + pw, y1: Y(0), y2: Y(0), class: 'axis' }, grid);
+    svgEl('text', { x: m.l + pw / 2, y: H - 6, class: 'tick', 'text-anchor': 'middle' }, grid).textContent = cfg.xLabel;
+    svgEl('text', { x: 12, y: m.t + ph / 2, class: 'tick', 'text-anchor': 'middle', transform: `rotate(-90 12 ${m.t + ph / 2})` }, grid).textContent = cfg.yLabel;
+
+    if (cfg.line && cfg.line.length) {
+      const d = cfg.line.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(1) + ',' + Y(p.y).toFixed(1)).join('');
+      svgEl('path', { d, class: 'line', style: `stroke:${colorVar(cfg.lineColor || 1)}` }, svg);
+    }
+    const tip = makeTooltip(wrap);
+    for (const p of cfg.points) {
+      const g = cfg.groups[p.group];
+      const x = X(p.x), y = Y(p.y);
+      const mark = g.shape === 'rect'
+        ? svgEl('rect', { x: x - 6, y: y - 6, width: 12, height: 12, rx: 2, class: 'dot', style: `fill:${colorVar(g.color)}` }, svg)
+        : svgEl('circle', { cx: x, cy: y, r: 5, class: 'dot', style: `fill:${colorVar(g.color)}` }, svg);
+      if (p.label) svgEl('text', { x: x + 8, y: y - 6, class: 'end-label' }, svg).textContent = p.label;
+      mark.setAttribute('tabindex', 0);
+      mark.setAttribute('aria-label', (p.name || p.label) + ': ' + cfg.yLabel + ' ' + cfg.yFormat(p.y) + ', ' + cfg.xLabel + ' ' + cfg.xFormat(p.x));
+      const on = () => {
+        fillTooltip(tip, p.name || p.label, [
+          { value: cfg.yFormat(p.y), name: cfg.yLabel },
+          { value: cfg.xFormat(p.x), name: cfg.xLabel },
+        ]);
+        placeTooltip(tip, wrap, x, Math.max(0, y - 20));
+      };
+      mark.addEventListener('pointerenter', on);
+      mark.addEventListener('focus', on);
+      mark.addEventListener('pointerleave', () => (tip.hidden = true));
+      mark.addEventListener('blur', () => (tip.hidden = true));
+    }
+  }
+
   // Plain data table; all cell text goes through textContent.
   function table(container, columns, rows, opts) {
     container.textContent = '';
@@ -484,5 +545,5 @@
     container.appendChild(scroller);
   }
 
-  QL.charts = { lineChart, histogram, heatmap, table, fmtDate, TH_MONTHS };
+  QL.charts = { lineChart, histogram, heatmap, scatter, table, fmtDate, TH_MONTHS };
 })((window.QL = window.QL || {}));

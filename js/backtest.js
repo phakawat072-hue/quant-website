@@ -320,5 +320,5 @@
     return bins;
   }
 
-  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta, gridValues, bootstrap, walkForward };
+  QL.backtest = { run, drawdown, metrics, monthlyReturns, histogram, returnStats, beta, gridValues, bootstrap, walkForward };
 })((window.QL = window.QL || {}));
