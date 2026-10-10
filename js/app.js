@@ -26,6 +26,10 @@
     rf: 2,
     allowShort: false,
     stop: { type: 'none', pct: 10 },
+    sizing: { type: 'full', target: 15 },
+    delay: 0,
+    cash: true,
+    borrow: 1,
     log: false,
     tableView: {},
     pos: null,
@@ -91,6 +95,19 @@
     state.loadedId = id;
     state.pendingLive = null;
     applyRange(state.range === 'CUSTOM' ? '5Y' : state.range);
+    if (state.linkDates) {
+      const [a, b] = state.linkDates;
+      state.linkDates = null;
+      if (isFinite(a) && isFinite(b) && a < b) {
+        state.range = 'CUSTOM';
+        state.s = indexAtOrAfter(a);
+        let ei = data.dates.length - 1;
+        while (ei > 0 && data.dates[ei] > b) ei--;
+        state.e = ei;
+        ensureMinWindow();
+        syncRangeUi();
+      }
+    }
     syncDataUi();
     return true;
   }
@@ -294,7 +311,11 @@
       e.target.value = state.rf;
       run();
     });
-    $('shortInput').addEventListener('change', (e) => { state.allowShort = e.target.checked; run(); });
+    $('shortInput').addEventListener('change', (e) => {
+      state.allowShort = e.target.checked;
+      $('borrowInput').disabled = !state.allowShort;
+      run();
+    });
     $('stopType').addEventListener('change', (e) => {
       state.stop.type = e.target.value;
       $('stopPct').disabled = state.stop.type === 'none';
@@ -305,6 +326,24 @@
       e.target.value = state.stop.pct;
       run();
     });
+    $('sizeType').addEventListener('change', (e) => {
+      state.sizing.type = e.target.value;
+      $('volTarget').disabled = state.sizing.type !== 'vol';
+      run();
+    });
+    $('volTarget').addEventListener('change', (e) => {
+      state.sizing.target = clamp(parseFloat(e.target.value), 2, 60, 15);
+      e.target.value = state.sizing.target;
+      run();
+    });
+    $('delaySelect').addEventListener('change', (e) => { state.delay = +e.target.value; run(); });
+    $('cashInput').addEventListener('change', (e) => { state.cash = e.target.checked; run(); });
+    $('borrowInput').addEventListener('change', (e) => {
+      state.borrow = clamp(parseFloat(e.target.value), 0, 50, 1);
+      e.target.value = state.borrow;
+      run();
+    });
+    $('shareBtn').addEventListener('click', () => copyLink(backtestLink(), $('shareBtn')));
     $('logInput').addEventListener('change', (e) => { state.log = e.target.checked; renderEquity(); });
 
     $('reseedBtn').addEventListener('click', () => {
@@ -407,10 +446,28 @@
   });
 
   // ---------- run ----------
+  // Engine options shared by every run (main result, half split, sweep, walk-forward).
+  let sizeCache = null;
+  function engineOpts() {
+    let size = null;
+    if (state.sizing.type === 'vol') {
+      if (!sizeCache || sizeCache.data !== state.data || sizeCache.target !== state.sizing.target) {
+        sizeCache = { data: state.data, target: state.sizing.target, size: BT.volScale(state.data.close, state.sizing.target, 20, 252) };
+      }
+      size = sizeCache.size;
+    }
+    return {
+      costBps: state.costBps, rf: state.rf, stop: state.stop, delay: state.delay, cash: state.cash,
+      borrowPct: state.allowShort ? state.borrow : 0, size,
+    };
+  }
+  // Same settings without the size array, for cache keys.
+  const optsKey = () => JSON.stringify([state.costBps, state.rf, state.stop, state.delay, state.cash, state.borrow, state.sizing]);
+
   function runStrategy(key, params, opts) {
     const strat = STRATEGIES[key];
     const pos = strat.signal(state.data.close, params, state.allowShort, state.data.dates);
-    const o = Object.assign({ costBps: state.costBps, rf: state.rf, stop: state.stop, s: state.s, e: state.e }, opts);
+    const o = Object.assign(engineOpts(), { s: state.s, e: state.e }, opts);
     return { pos, res: BT.run(state.data, pos, o.s, o.e, o) };
   }
 
@@ -496,6 +553,15 @@
       kpiTile('อัตราชนะ (Win rate)', pct(m.winRate, 0, false), 'Profit factor ' + num(m.profitFactor)),
       kpiTile('จำนวนเทรด', m.trades.toLocaleString('en-US'), 'ถือสถานะ ' + pct(m.exposure, 0, false) + ' ของเวลา' +
         (state.stop.type !== 'none' ? ' · โดน stop ' + m.stops + ' ครั้ง' : '')),
+      kpiTile('VaR 95% (1 วัน)', pct(-m.var95, 2), 'วันที่แย่ 1 ใน 20 วันเสียอย่างน้อยเท่านี้ · Buy & Hold ' + pct(-b.var95, 2),
+        { diff: m.var95 - b.var95, text: pp(m.var95 - b.var95), higherIsBetter: false }),
+      kpiTile('CVaR 95% (1 วัน)', pct(-m.cvar95, 2), 'ค่าเฉลี่ยของวันที่แย่ที่สุด 5% · Buy & Hold ' + pct(-b.cvar95, 2),
+        { diff: m.cvar95 - b.cvar95, text: pp(m.cvar95 - b.cvar95), higherIsBetter: false }),
+      kpiTile('ติดลบนานสุด', m.ddDays.toLocaleString('en-US') + ' วัน', 'ช่วงยาวสุดที่ต่ำกว่าจุดสูงสุดเดิม (นับวันปฏิทิน) · Buy & Hold ' + b.ddDays.toLocaleString('en-US') + ' วัน',
+        { diff: m.ddDays - b.ddDays, text: (m.ddDays - b.ddDays > 0 ? '+' : '') + (m.ddDays - b.ddDays) + ' วัน', higherIsBetter: false }),
+      kpiTile('เงินลงทุนเฉลี่ย', pct(m.avgExposure, 0, false), state.sizing.type === 'vol'
+        ? 'ลดขนาดเมื่อผันผวนเกิน ' + state.sizing.target + '%/ปี (ใช้ความผันผวน 20 วันล่าสุด)'
+        : 'สัดส่วนเงินที่อยู่ในหุ้นโดยเฉลี่ย ส่วนที่เหลือถือเงินสด' + (state.cash ? ' ได้ดอกเบี้ย ' + state.rf + '%/ปี' : '')),
     );
   }
 
@@ -515,6 +581,34 @@
     renderPrice();
     renderDrawdown();
     renderHist();
+    renderRolling();
+  }
+
+  function renderRolling() {
+    const r = state.res, el = $('rollChart');
+    const ppy = (r.times.length - 1) / r.metrics.years;
+    const win = Math.round(ppy);
+    if (r.times.length <= win + 20) {
+      el.textContent = '';
+      el.appendChild(mk('p', 'empty-state scan-empty', 'ต้องมีข้อมูลมากกว่า 1 ปี เลือกช่วง 3 ปีขึ้นไปเพื่อดูกราฟนี้'));
+      return;
+    }
+    const a = BT.rollingSharpe(r.rets, win, ppy, state.rf), b = BT.rollingSharpe(r.benchRets, win, ppy, state.rf);
+    if (state.tableView.rolling) {
+      C.table(el, [{ key: 'date', label: 'วันที่ (สิ้นเดือน)' }, { key: 'a', label: 'กลยุทธ์', num: true }, { key: 'b', label: 'Buy & Hold', num: true }],
+        monthEndIndices(r.times).reverse().filter((i) => isFinite(a[i])).map((i) => ({ date: isoDate(r.times[i]), a: num(a[i]), b: num(b[i]) })),
+        { caption: 'Sharpe ย้อนหลัง 1 ปี รายเดือน' });
+      return;
+    }
+    C.lineChart(el, {
+      times: r.times,
+      series: [{ name: 'กลยุทธ์', values: a, color: 1 }, { name: 'Buy & Hold', values: b, color: 2 }],
+      yFormat: (v) => num(v, 1),
+      tipFormat: (v) => num(v),
+      zero: true,
+      height: 260,
+      ariaLabel: 'กราฟ Sharpe ย้อนหลัง 1 ปี',
+    });
   }
 
   function renderEquity() {
@@ -803,7 +897,7 @@
       betaTile = ba
         ? mathTile('Beta เทียบ S&P 500', num(ba.beta),
           'หุ้น ' + d.name + ' ขยับประมาณ ' + num(ba.beta) + ' เท่าของตลาด (correlation ' + num(ba.corr) + ') · กลยุทธ์นี้มี beta ' +
-          num(bs.beta) + ' เพราะไม่ได้ถือหุ้นตลอดเวลา', '159–162')
+          num(bs.beta) + ' และ alpha ' + pct(bs.alpha * ppy) + '/ปี (ผลตอบแทนส่วนที่ไม่ได้มาจากการขยับตามตลาด ยิ่งบวกยิ่งดี)', '159–162')
         : mathTile('Beta เทียบ S&P 500', '—', 'วันที่ตรงกับข้อมูล SPY มีน้อยเกินไป', '159–162');
     }
     tiles.appendChild(betaTile);
@@ -942,8 +1036,8 @@
       return sec;
     }
     const cur = state.params[state.strategy];
-    const opts = { costBps: state.costBps, rf: state.rf, stop: state.stop };
-    const key = JSON.stringify([state.strategy, s, e, opts, state.allowShort, strat.params.slice(2).map((d) => cur[d.key])]);
+    const opts = engineOpts();
+    const key = JSON.stringify([state.strategy, s, e, optsKey(), state.allowShort, strat.params.slice(2).map((d) => cur[d.key])]);
     if (!wfCache || wfCache.data !== state.data || wfCache.key !== key) {
       let combos = [{}];
       for (const d of defs) combos = combos.flatMap((c) => BT.gridValues(d).map((v) => Object.assign({}, c, { [d.key]: v })));
@@ -1022,7 +1116,7 @@
 
     const [d1, d2] = strat.params;
     const cur = state.params[state.strategy];
-    const key = JSON.stringify([state.strategy, s, e, state.costBps, state.rf, state.allowShort, state.stop,
+    const key = JSON.stringify([state.strategy, s, e, optsKey(), state.allowShort,
       strat.params.slice(2).map((d) => cur[d.key])]);
     if (!sweepCache || sweepCache.data !== state.data || sweepCache.key !== key) {
       const xs = BT.gridValues(d1), ys = BT.gridValues(d2);
@@ -1033,7 +1127,7 @@
           const p = Object.assign({}, cur, { [d1.key]: a, [d2.key]: b });
           if (strat.validate && strat.validate(p)) { ri.push(null); ro.push(null); continue; }
           const pos = signalFor(p);
-          const o = { costBps: state.costBps, rf: state.rf, stop: state.stop };
+          const o = engineOpts();
           ri.push(BT.run(state.data, pos, s, mid, o).metrics.sharpe);
           ro.push(BT.run(state.data, pos, mid, e, o).metrics.sharpe);
         }
@@ -1104,6 +1198,19 @@
       ' → ครึ่งหลัง ' + num(bestOut) + ' อยู่อันดับ ' + rank + ' จาก ' + n + ' คู่ · ' +
       (top ? 'ยังอยู่ครึ่งบน ค่าที่เลือกไม่ได้ดีแค่บังเอิญ (แต่ไม่รับประกันอนาคต)'
         : 'ตกไปครึ่งล่าง ค่าที่ดีที่สุดในอดีตไม่ได้ดีต่อ อย่าเชื่อการปรับพารามิเตอร์ให้เข้ากับข้อมูลเก่า')));
+
+    // Deflated Sharpe: discount the best first-half Sharpe for having tried n pairs.
+    const bestP = Object.assign({}, cur, { [d1.key]: xs[best[1]], [d2.key]: ys[best[0]] });
+    const br = BT.run(state.data, signalFor(bestP), s, mid, engineOpts());
+    const trials = inS.flat().filter((v) => v != null);
+    const ds = BT.deflatedSharpe(br.rets.slice(1), (br.times.length - 1) / br.metrics.years, trials, state.rf);
+    if (ds) {
+      const ok = ds.dsr >= 0.95;
+      sec.appendChild(verdict(ok, 'Deflated Sharpe: ถ้าลองแค่คู่เดียว โอกาสที่ Sharpe จริงมากกว่า 0 คือ ' + pct(ds.psr, 0, false) +
+        ' แต่เมื่อหักผลของการลอง ' + ds.trials + ' คู่แล้วเลือกคู่ที่ดีที่สุด (เกณฑ์ที่ต้องข้าม Sharpe ' + num(ds.hurdle) + ') เหลือ ' + pct(ds.dsr, 0, false) +
+        (ok ? ' ผ่านเกณฑ์ 95%' : ' ไม่ถึงเกณฑ์ 95% ความ "ดีที่สุด" ส่วนใหญ่มาจากการลองหลายครั้ง')));
+      sec.appendChild(mk('p', 'sweep-axis', 'วิธีของ Bailey และ López de Prado (2014) ยิ่งลองหลายค่า ยิ่งมีโอกาสเจอค่าที่ดูดีโดยบังเอิญ · Paulos หน้า 28–30'));
+    }
     return sec;
   }
 
@@ -1129,7 +1236,7 @@
   // ---------- init ----------
   // ---------- views (backtest / scan) ----------
   const scanView = QL.scanView.init({ container: $('scanView'), onOpen: openTicker });
-  const portfolioView = QL.portfolioView.init({ container: $('portfolioView') });
+  const portfolioView = QL.portfolioView.init({ container: $('portfolioView'), onShare: (url, btn) => copyLink(url, btn) });
 
   function route() {
     const view = location.hash === '#scan' ? 'scan' : location.hash === '#portfolio' ? 'portfolio' : 'backtest';
@@ -1171,9 +1278,92 @@
     loadAndRun();
   }
 
+  // ---------- shareable links (?a=AAPL&st=sma&p=20,100&r=5Y...) ----------
+  function backtestLink() {
+    const q = new URLSearchParams();
+    const id = state.assetId;
+    if (id.startsWith('stock:') || id.startsWith('live:')) q.set('a', id.slice(id.indexOf(':') + 1));
+    else if (id.startsWith('sim:')) q.set('a', id);
+    if (state.range === 'CUSTOM') {
+      q.set('d1', isoDate(state.data.dates[state.s]));
+      q.set('d2', isoDate(state.data.dates[state.e]));
+    } else q.set('r', state.range);
+    q.set('st', state.strategy);
+    const p = state.params[state.strategy];
+    const keys = STRATEGIES[state.strategy].params.map((d) => p[d.key]);
+    if (keys.length) q.set('p', keys.join(','));
+    q.set('c', state.costBps);
+    q.set('rf', state.rf);
+    if (state.allowShort) { q.set('sh', 1); q.set('bw', state.borrow); }
+    if (state.stop.type !== 'none') q.set('sl', state.stop.type + ':' + state.stop.pct);
+    if (state.sizing.type === 'vol') q.set('sz', 'vol:' + state.sizing.target);
+    if (state.delay) q.set('dl', 1);
+    if (!state.cash) q.set('cs', 0);
+    return location.origin + location.pathname + '?' + q.toString();
+  }
+
+  function copyLink(url, btn) {
+    const full = url + location.hash;
+    const done = (ok) => {
+      if (!ok) { window.prompt('คัดลอกลิงก์นี้ (Ctrl+C):', full); return; }
+      const old = btn.dataset.label || btn.textContent;
+      btn.dataset.label = old;
+      btn.textContent = '✓ คัดลอกลิงก์แล้ว';
+      setTimeout(() => (btn.textContent = old), 2500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(full).then(() => done(true), () => done(false));
+    else done(false);
+  }
+
+  function applyLink() {
+    const q = new URLSearchParams(location.search);
+    if (![...q.keys()].length) return;
+    const n = (k, lo, hi, def) => clamp(parseFloat(q.get(k)), lo, hi, def);
+    const a = q.get('a');
+    if (a) {
+      const t = a.toUpperCase();
+      state.assetId = a.startsWith('sim:') ? a : stocks.some((x) => x.ticker === t) ? 'stock:' + t : 'live:' + t;
+    }
+    if (['1Y', '3Y', '5Y', 'ALL'].includes(q.get('r'))) state.range = q.get('r');
+    if (q.get('d1') && q.get('d2')) state.linkDates = [Date.parse(q.get('d1')), Date.parse(q.get('d2'))];
+    if (STRATEGIES[q.get('st')]) {
+      state.strategy = q.get('st');
+      const vals = (q.get('p') || '').split(',');
+      STRATEGIES[state.strategy].params.forEach((d, i) => {
+        const v = parseFloat(vals[i]);
+        if (isFinite(v)) state.params[state.strategy][d.key] = clamp(v, d.min, d.max, d.def);
+      });
+    }
+    state.costBps = n('c', 0, 200, 5);
+    state.rf = n('rf', 0, 20, 2);
+    state.allowShort = q.get('sh') === '1';
+    state.borrow = n('bw', 0, 50, 1);
+    const [slT, slP] = (q.get('sl') || '').split(':');
+    if (slT === 'fixed' || slT === 'trailing') state.stop = { type: slT, pct: clamp(parseFloat(slP), 1, 50, 10) };
+    const [szT, szP] = (q.get('sz') || '').split(':');
+    if (szT === 'vol') state.sizing = { type: 'vol', target: clamp(parseFloat(szP), 2, 60, 15) };
+    state.delay = q.get('dl') === '1' ? 1 : 0;
+    state.cash = q.get('cs') !== '0';
+    // Reflect into the static inputs.
+    $('costInput').value = state.costBps;
+    $('rfInput').value = state.rf;
+    $('shortInput').checked = state.allowShort;
+    $('borrowInput').value = state.borrow;
+    $('borrowInput').disabled = !state.allowShort;
+    $('stopType').value = state.stop.type;
+    $('stopPct').value = state.stop.pct;
+    $('stopPct').disabled = state.stop.type === 'none';
+    $('sizeType').value = state.sizing.type;
+    $('volTarget').value = state.sizing.target;
+    $('volTarget').disabled = state.sizing.type !== 'vol';
+    $('delaySelect').value = String(state.delay);
+    $('cashInput').checked = state.cash;
+  }
+
   window.addEventListener('hashchange', route);
   window.addEventListener('popstate', route);
 
+  applyLink();
   buildControls();
   route();
   loadAndRun();
