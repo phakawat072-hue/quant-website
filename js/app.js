@@ -399,11 +399,11 @@
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('ql-theme', next); } catch (e) { /* storage unavailable */ }
     syncThemeLabel();
-    if (state.res) renderHeatmap();
+    if (state.res) { renderHeatmap(); renderMath(); }
   }
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     syncThemeLabel();
-    if (state.res) renderHeatmap();
+    if (state.res) { renderHeatmap(); renderMath(); }
   });
 
   // ---------- run ----------
@@ -878,6 +878,112 @@
         : 'Stop-loss ไม่ได้ช่วยลดการขาดทุนสูงสุดในช่วงนี้ อาจโดนขายบ่อยจนพลาดช่วงราคาฟื้นตัว ลองปรับ % ดู'));
     }
     box.appendChild(ss);
+
+    box.appendChild(sweepSection());
+  }
+
+  // 4. Parameter sweep: pick the best first-half Sharpe, then see how it ranks in the second half.
+  let sweepCache = null;
+
+  function sweepSection() {
+    const sec = mathSection('ลองพารามิเตอร์หลายค่า: ดีในอดีต = ดีในอนาคตไหม?',
+      'ลองทุกคู่ค่าพารามิเตอร์ แล้วเลือกคู่ที่ Sharpe ดีที่สุดในครึ่งแรก จากนั้นดูว่าคู่นั้นยังดีอยู่ไหมในครึ่งหลังซึ่งไม่ได้ใช้ตอนเลือก ถ้าตกอันดับ แปลว่าค่าที่ "ดีที่สุด" แค่บังเอิญเข้ากับอดีต (overfitting) · Paulos หน้า 28–30, 44');
+    const strat = STRATEGIES[state.strategy];
+    if (strat.params.length < 2) {
+      sec.appendChild(mk('p', 'card-sub', 'กลยุทธ์นี้มีพารามิเตอร์ไม่ถึง 2 ตัว เลือกกลยุทธ์อื่น เช่น SMA Crossover เพื่อดูตารางนี้'));
+      return sec;
+    }
+    const s = state.s, e = state.e, mid = Math.floor((s + e) / 2);
+    if (mid - s < 60 || e - mid < 60) {
+      sec.appendChild(mk('p', 'empty-state scan-empty', 'ช่วงเวลาสั้นเกินไป เลือกช่วงอย่างน้อยประมาณ 1 ปี'));
+      return sec;
+    }
+
+    const [d1, d2] = strat.params;
+    const cur = state.params[state.strategy];
+    const key = JSON.stringify([state.strategy, s, e, state.costBps, state.rf, state.allowShort, state.stop,
+      strat.params.slice(2).map((d) => cur[d.key])]);
+    if (!sweepCache || sweepCache.data !== state.data || sweepCache.key !== key) {
+      const xs = BT.gridValues(d1), ys = BT.gridValues(d2);
+      const inS = [], outS = [];
+      for (const b of ys) {
+        const ri = [], ro = [];
+        for (const a of xs) {
+          const p = Object.assign({}, cur, { [d1.key]: a, [d2.key]: b });
+          if (strat.validate && strat.validate(p)) { ri.push(null); ro.push(null); continue; }
+          const pos = strat.signal(state.data.close, p, state.allowShort, state.data.dates);
+          const o = { costBps: state.costBps, rf: state.rf, stop: state.stop };
+          ri.push(BT.run(state.data, pos, s, mid, o).metrics.sharpe);
+          ro.push(BT.run(state.data, pos, mid, e, o).metrics.sharpe);
+        }
+        inS.push(ri);
+        outS.push(ro);
+      }
+      sweepCache = { data: state.data, key, xs, ys, inS, outS };
+    }
+    const { xs, ys, inS, outS } = sweepCache;
+
+    let best = null, n = 0;
+    inS.forEach((row, yi) => row.forEach((v, xi) => {
+      if (v == null) return;
+      n++;
+      if (!best || v > inS[best[0]][best[1]]) best = [yi, xi];
+    }));
+    if (!best) {
+      sec.appendChild(mk('p', 'card-sub', 'ไม่มีคู่พารามิเตอร์ที่ใช้ได้'));
+      return sec;
+    }
+    const bestOut = outS[best[0]][best[1]];
+    let rank = 1;
+    for (const row of outS) for (const v of row) if (v != null && v > bestOut) rank++;
+
+    const curCell = [ys.indexOf(cur[d2.key]), xs.indexOf(cur[d1.key])];
+    const mark = (yi, xi) => {
+      const m = (yi === best[0] && xi === best[1] ? '★' : '') + (yi === curCell[0] && xi === curCell[1] ? '●' : '');
+      return m ? m + ' ' : '';
+    };
+    const apply = (yi, xi) => {
+      cur[d1.key] = xs[xi];
+      cur[d2.key] = ys[yi];
+      buildParams();
+      run();
+    };
+    const abs = [...inS, ...outS].flat().filter((v) => v != null).map(Math.abs).sort((a, b) => a - b);
+    const lim = Math.max(abs[Math.floor(abs.length * 0.95)] || 0.1, 0.1);
+    const grid = (title, vals) => {
+      const wrap = mk('div');
+      wrap.appendChild(mk('h4', null, title));
+      C.heatmap(wrap.appendChild(mk('div')), {
+        cols: xs.map(String),
+        rows: ys.map((y, yi) => ({ label: y, values: vals[yi] })),
+        total: false,
+        lim,
+        cls: 'sweep',
+        corner: d2.label.replace(/\s*\(.*\)/, '') + ' ↓',
+        format: (v) => num(v),
+        valueName: 'Sharpe',
+        cellLabel: (yi, xi) => d1.label + ' ' + xs[xi] + ', ' + d2.label + ' ' + ys[yi] + ' (' + title + ')',
+        mark,
+        onCell: apply,
+        caption: 'Sharpe ' + title + ' แยกตาม ' + d1.label + ' และ ' + d2.label,
+      });
+      return wrap;
+    };
+    const pair = mk('div', 'sweep-pair');
+    pair.append(
+      grid('ครึ่งแรก (ใช้เลือก) ' + isoDate(state.data.dates[s]) + ' ถึง ' + isoDate(state.data.dates[mid]), inS),
+      grid('ครึ่งหลัง (ทดสอบ) ' + isoDate(state.data.dates[mid]) + ' ถึง ' + isoDate(state.data.dates[e]), outS));
+    sec.appendChild(pair);
+    sec.appendChild(mk('p', 'sweep-axis', 'แนวนอน = ' + d1.label + ' · แนวตั้ง = ' + d2.label +
+      ' · ค่าในช่อง = Sharpe · ★ = ดีที่สุดในครึ่งแรก · ● = ค่าที่ใช้อยู่ · กดช่องเพื่อใช้ค่านั้น'));
+
+    const bestText = d1.label + ' ' + xs[best[1]] + ', ' + d2.label + ' ' + ys[best[0]];
+    const top = rank <= Math.ceil(n / 2);
+    sec.appendChild(verdict(top, 'คู่ที่ดีที่สุดในครึ่งแรก (' + bestText + ') Sharpe ' + num(inS[best[0]][best[1]]) +
+      ' → ครึ่งหลัง ' + num(bestOut) + ' อยู่อันดับ ' + rank + ' จาก ' + n + ' คู่ · ' +
+      (top ? 'ยังอยู่ครึ่งบน ค่าที่เลือกไม่ได้ดีแค่บังเอิญ (แต่ไม่รับประกันอนาคต)'
+        : 'ตกไปครึ่งล่าง ค่าที่ดีที่สุดในอดีตไม่ได้ดีต่อ อย่าเชื่อการปรับพารามิเตอร์ให้เข้ากับข้อมูลเก่า')));
+    return sec;
   }
 
   function exportCsv() {
