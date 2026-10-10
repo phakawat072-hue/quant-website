@@ -1,6 +1,6 @@
 QL.data.setManifest({
  "updated": "2026-10-09",
- "generatedAt": "2026-10-10T01:52:46+00:00",
+ "generatedAt": "2026-10-10T20:34:28+00:00",
  "tickers": [
   {
    "ticker": "AAPL",
@@ -411,6 +411,564 @@ QL.data.setManifest({
    "ticker": "QQQ",
    "name": "Invesco QQQ (Nasdaq-100)",
    "sector": "ETF ดัชนี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "IBM",
+   "name": "IBM",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TXN",
+   "name": "Texas Instruments",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "INTU",
+   "name": "Intuit",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "NOW",
+   "name": "ServiceNow",
+   "sector": "เทคโนโลยี",
+   "first": "2012-06-29",
+   "last": "2026-10-09",
+   "rows": 3590,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "AMAT",
+   "name": "Applied Materials",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "MU",
+   "name": "Micron Technology",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "ADI",
+   "name": "Analog Devices",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "LRCX",
+   "name": "Lam Research",
+   "sector": "เทคโนโลยี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "PANW",
+   "name": "Palo Alto Networks",
+   "sector": "เทคโนโลยี",
+   "first": "2012-07-20",
+   "last": "2026-10-09",
+   "rows": 3576,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "WFC",
+   "name": "Wells Fargo",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "C",
+   "name": "Citigroup",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "MS",
+   "name": "Morgan Stanley",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "AXP",
+   "name": "American Express",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "BLK",
+   "name": "BlackRock",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "SCHW",
+   "name": "Charles Schwab",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "SPGI",
+   "name": "S&P Global",
+   "sector": "การเงิน",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "PYPL",
+   "name": "PayPal",
+   "sector": "การเงิน",
+   "first": "2015-07-06",
+   "last": "2026-10-09",
+   "rows": 2834,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TMO",
+   "name": "Thermo Fisher Scientific",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "ABT",
+   "name": "Abbott Laboratories",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "DHR",
+   "name": "Danaher",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "BMY",
+   "name": "Bristol-Myers Squibb",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "AMGN",
+   "name": "Amgen",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "GILD",
+   "name": "Gilead Sciences",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "CVS",
+   "name": "CVS Health",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "ISRG",
+   "name": "Intuitive Surgical",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "MDT",
+   "name": "Medtronic",
+   "sector": "สุขภาพ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "LOW",
+   "name": "Lowe's",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TGT",
+   "name": "Target",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TJX",
+   "name": "TJX Companies",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "BKNG",
+   "name": "Booking Holdings",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "CMG",
+   "name": "Chipotle Mexican Grill",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "MO",
+   "name": "Altria",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "PM",
+   "name": "Philip Morris International",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "CL",
+   "name": "Colgate-Palmolive",
+   "sector": "สินค้าอุปโภคบริโภค",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "COP",
+   "name": "ConocoPhillips",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "SLB",
+   "name": "Schlumberger",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "HON",
+   "name": "Honeywell",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "UPS",
+   "name": "United Parcel Service",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "RTX",
+   "name": "RTX (Raytheon)",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "LMT",
+   "name": "Lockheed Martin",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "DE",
+   "name": "Deere & Company",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "UNP",
+   "name": "Union Pacific",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "MMM",
+   "name": "3M",
+   "sector": "พลังงานและอุตสาหกรรม",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "NEE",
+   "name": "NextEra Energy",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "DUK",
+   "name": "Duke Energy",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "SO",
+   "name": "Southern Company",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "T",
+   "name": "AT&T",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "VZ",
+   "name": "Verizon",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TMUS",
+   "name": "T-Mobile US",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "CMCSA",
+   "name": "Comcast",
+   "sector": "สาธารณูปโภคและสื่อสาร",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "AMT",
+   "name": "American Tower",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "PLD",
+   "name": "Prologis",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "O",
+   "name": "Realty Income",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "LIN",
+   "name": "Linde",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "NEM",
+   "name": "Newmont",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "FCX",
+   "name": "Freeport-McMoRan",
+   "sector": "อสังหาฯ และวัสดุ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "DIA",
+   "name": "SPDR Dow Jones Industrial Average ETF",
+   "sector": "ETF ดัชนี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "IWM",
+   "name": "iShares Russell 2000 (หุ้นเล็ก)",
+   "sector": "ETF ดัชนี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "EFA",
+   "name": "iShares MSCI EAFE (หุ้นนอกสหรัฐ)",
+   "sector": "ETF ดัชนี",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "TLT",
+   "name": "iShares 20+ Year Treasury Bond",
+   "sector": "ETF พันธบัตรและทองคำ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "IEF",
+   "name": "iShares 7-10 Year Treasury Bond",
+   "sector": "ETF พันธบัตรและทองคำ",
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "rows": 4218,
+   "source": "Yahoo Finance"
+  },
+  {
+   "ticker": "GLD",
+   "name": "SPDR Gold Shares",
+   "sector": "ETF พันธบัตรและทองคำ",
    "first": "2010-01-04",
    "last": "2026-10-09",
    "rows": 4218,
