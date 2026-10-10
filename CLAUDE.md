@@ -119,9 +119,14 @@ Market* (2003). Features built from it, with the page numbers shown in the UI:
 | First-half vs second-half out-of-sample check | 28–30 |
 | Survivorship-bias note on the scanner | 30–31 |
 | Parameter-sweep heatmaps (first-half Sharpe picks, second-half Sharpe tests; click a cell to apply) | 28–30, 44 |
+| Bootstrap 90% intervals for Sharpe/CAGR and P(Sharpe > 0) | 63–67 |
+| Walk-forward (pick best of the sweep on 2 years, trade the next year, roll) | 28–30, 44 |
 
 The sweep uses the strategy's first two params, 7 values each around the defaults
 (`BT.gridValues`), and caches by data + window + settings so re-renders are cheap.
+Sweep and walk-forward share positions through `signalFor` (memoised per strategy,
+short setting and data). `BT.bootstrap` is a seeded circular block bootstrap (20-day
+blocks, 1,000 draws); `BT.walkForward` stitches the test windows, each starting flat.
 
 Ideas from the book not built yet:
 - Value ratios (P/E, P/B, PEG, Dogs of the Dow). These need fundamentals data, which isn't available.
