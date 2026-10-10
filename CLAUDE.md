@@ -6,7 +6,7 @@ also works when opened straight from disk (`file://`).
 
 - Live site: https://phakawat072-hue.github.io/quant-website/ (GitHub Pages, `main` branch, repo root)
 - Scanner view: same page with `#scan`
-- Portfolio view: same page with `#portfolio`
+- Portfolio view: same page with `#portfolio`; glossary of Thai quant terms at `#glossary`
 - Shareable links: query string (`?a=AAPL&st=sma&p=20,100&r=5Y...` for the backtest, `?pt=AAPL,JPM&pm=minvar...#portfolio` for portfolios), read once on load by `applyLink()` / the portfolio `init`
 
 ## Working with the user
@@ -43,10 +43,14 @@ also works when opened straight from disk (`file://`).
 | `data/symbols.js` | Every US-listed stock/ETF from NASDAQ Trader for search (generated) |
 | `data/scan.js` | Daily signals for S&P 500 + Nasdaq-100 (generated) |
 | `data/movers.js` | Daily top movers across all liquid US common stocks (generated) |
+| `data/fundamentals.js` | Annual EPS, book value and dividends per share from SEC 10-Ks, point in time and on the adjusted-price basis (generated) |
+| `js/glossary.js` | Glossary view (`TERMS`: term, group, explanation, where on the site, Paulos pages) |
+| `tests/run.js` | Dependency-free test suite (`node tests/run.js`), run by `.github/workflows/test.yml` on every push and PR |
 | `scripts/fetch_prices.py` | Builds `data/prices/*` and `data/symbols.js` (yfinance) |
 | `scripts/scan.py` | Builds `data/scan.js` (members: Wikipedia S&P 500, Nasdaq API for Nasdaq-100) |
 | `scripts/movers.py` | Builds `data/movers.js` (chunks of 400 tickers, $1 price / $1M dollar-volume filters) |
-| `.github/workflows/update-prices.yml` | Runs the three scripts Mon–Fri 22:30 UTC, on manual dispatch, and on pushes that touch the scripts; commits `data/` as "Update stock prices YYYY-MM-DD" |
+| `scripts/fundamentals.py` | Builds `data/fundamentals.js` from SEC companyfacts + yfinance splits and Adj Close/Close (one row per fiscal year from its first 10-K; `clean()` keeps rows increasing in filing date and year end) |
+| `.github/workflows/update-prices.yml` | Runs the four scripts Mon–Fri 22:30 UTC, on manual dispatch, and on pushes that touch the scripts; commits `data/` as "Update stock prices YYYY-MM-DD" |
 
 Everything under `data/` is generated: never edit it by hand. If a merge
 conflicts only in `data/`, take either side (`git checkout --ours -- data/`);
@@ -83,16 +87,15 @@ the next workflow run regenerates it.
 
 ## Testing before a PR
 
-There is no test suite. Before opening a PR:
-
-1. Run quick Node checks of any changed math. The modules attach to `window.QL`;
-   use `global.window = {}` and then `require('./js/strategies.js')`.
+1. `node tests/run.js` must pass (CI runs it too). Add a test for any new math;
+   the modules attach to `window.QL` (`global.window = {}` then `require(...)`).
 2. Run a headless Chromium pass with Playwright against `file:///…/index.html`:
    - no console errors
    - the new UI renders
    - the page has no horizontal scroll at 1300 px and at 390 px width
-3. For Python scripts, mock `yf.download` / `urllib` and run them in a scratch
-   copy, because the network can't be used for real tests (see below).
+3. Python scripts: on the user's Windows machine run them for real with
+   `uv run --with yfinance --with pandas python scripts/<name>.py` (plain `python`
+   is not installed; `py` is). In the cloud sandbox, mock the network instead.
 
 ## Known environment constraints
 
@@ -132,6 +135,8 @@ Market* (2003). Features built from it, with the page numbers shown in the UI:
 | Portfolio momentum (top half by 12-1 month return) and trend (above SMA200, rest in cash) | 41–48 |
 | Risk KPIs (VaR/CVaR 95%, longest drawdown, average exposure), rolling 1-year Sharpe, alpha vs SPY | 136–140, 159–162 |
 | Deflated Sharpe for the best of the sweep (Bailey & López de Prado) | 28–30 |
+| SEC fundamentals card (P/E, P/B, yields), Value (low P/E) and high-dividend portfolios | 99–106 |
+| Portfolio walk-forward over methods, benchmark choice (SPY, QQQ, bond/gold ETFs) | 28–30, 143–147 |
 
 The sweep uses the strategy's first two params, 7 values each around the defaults
 (`BT.gridValues`), and caches by data + window + settings so re-renders are cheap.
@@ -139,6 +144,11 @@ Sweep and walk-forward share positions through `signalFor` (memoised per strateg
 short setting and data). `BT.bootstrap` is a seeded circular block bootstrap (20-day
 blocks, 1,000 draws); `BT.walkForward` stitches the test windows, each starting flat.
 
+SEC requires a contact email in the User-Agent (a GitHub noreply address is rejected).
+`fundamentals.py` takes `$SEC_USER_AGENT` or the newest non-noreply commit author email
+from `git log`, so no address is written into the repo; the user agreed to this.
+Exxon's ticker now maps to a new holding company CIK, hence `CIK_OVERRIDE`.
+Visa (class-dimensioned EPS) and BRK-B (EPS per class A share) have no fundamentals.
+
 Ideas from the book not built yet:
-- Value ratios (P/E, P/B, PEG, Dogs of the Dow). These need fundamentals data, which isn't available.
 - DeBondt–Thaler 3–5 year contrarian losers. This needs a longer scan history than the current 2 years.

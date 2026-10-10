@@ -27,6 +27,7 @@
       <a href="#" data-view="backtest">ทดสอบกลยุทธ์</a>
       <a href="#scan" data-view="scan">สแกนหุ้น</a>
       <a href="#portfolio" data-view="portfolio">พอร์ตหลายหุ้น</a>
+      <a href="#glossary" data-view="glossary">คำศัพท์</a>
     </nav>
     <button id="themeToggle" class="btn btn-ghost" type="button" aria-label="สลับธีมสว่าง/มืด">
       <span class="theme-icon" aria-hidden="true"></span><span id="themeLabel">ธีม</span>
@@ -36,6 +37,7 @@
   <main class="page">
     <div id="scanView" class="scan-view" hidden></div>
     <div id="portfolioView" class="scan-view" hidden></div>
+    <div id="glossaryView" class="scan-view" hidden></div>
     <div id="backtestView">
     <section class="controls" aria-label="ตัวกรองและการตั้งค่า">
       <div class="control-row">
@@ -141,7 +143,7 @@
       </div>
       <div id="livePanel" class="live-panel" hidden>
         <h2 class="live-title">ดึงราคาหุ้นสหรัฐได้ทุกตัว</h2>
-        <p class="live-desc">หุ้นยอดนิยม 46 ตัวโหลดได้ทันที ส่วนตัวอื่นจะดึงสดจาก Twelve Data ด้วย API key ของคุณ
+        <p class="live-desc">หุ้นและ ETF ยอดนิยมกว่า 100 ตัวโหลดได้ทันที ส่วนตัวอื่นจะดึงสดจาก Twelve Data ด้วย API key ของคุณ
           สมัครฟรีที่ <a href="https://twelvedata.com" target="_blank" rel="noopener noreferrer">twelvedata.com</a>
           (แพ็กเกจฟรีใช้ได้ 8 ครั้ง/นาที และ 800 ครั้ง/วัน) · key จะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</p>
         <form id="keyForm" class="inline">
@@ -254,6 +256,16 @@
         <div id="compareTable"></div>
       </article>
 
+      <article class="card span-2" id="fundCard" hidden>
+        <header class="card-head">
+          <div>
+            <h2>ข้อมูลพื้นฐานจากงบการเงิน (SEC)</h2>
+            <p class="card-sub">กำไรต่อหุ้น มูลค่าทางบัญชี และปันผล จากงบปี (10-K) ที่ยื่นต่อ SEC · ใช้ได้ตั้งแต่วันที่ประกาศเท่านั้น (ไม่รู้อนาคต) · Paulos หน้า 99–106</p>
+          </div>
+        </header>
+        <div id="fundBody"></div>
+      </article>
+
       <article class="card span-2">
         <header class="card-head">
           <div>
@@ -289,6 +301,7 @@
   <script src="data/symbols.js"></script>
   <script src="data/scan.js"></script>
   <script src="data/movers.js"></script>
+  <script src="data/fundamentals.js"></script>
   <script src="js/live.js"></script>
   <script src="js/strategies.js"></script>
   <script src="js/backtest.js"></script>
@@ -296,6 +309,7 @@
   <script src="js/search.js"></script>
   <script src="js/scan.js"></script>
   <script src="js/portfolio.js"></script>
+  <script src="js/glossary.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

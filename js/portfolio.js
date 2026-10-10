@@ -77,12 +77,31 @@
     maxsharpe: { name: 'Sharpe สูงสุด', desc: 'จุดบน efficient frontier ที่ Sharpe สูงสุด ใช้ทั้งผลตอบแทนและ covariance' },
     momentum: { name: 'Momentum (ครึ่งที่แรงสุด)', desc: 'ถือเท่ากันเฉพาะครึ่งบนของหุ้นที่ขึ้นมากสุดใน 12 เดือนก่อน ไม่นับเดือนล่าสุด (Paulos หน้า 47–48)', signal: true },
     trend: { name: 'ตามเทรนด์ (เหนือ SMA200)', desc: 'ถือเท่ากันเฉพาะตัวที่ราคาอยู่เหนือค่าเฉลี่ย 200 วัน ตัวที่เหลือถือเงินสด (Paulos หน้า 41–44)', signal: true },
+    value: { name: 'Value (P/E ต่ำ)', desc: 'ถือเท่ากันเฉพาะครึ่งที่ P/E ต่ำสุด (earnings yield สูงสุด) จากงบปีล่าสุดที่ประกาศแล้ว ตัวที่ขาดทุนหรือไม่มีงบ (ETF) ไม่ถูกเลือก (Paulos หน้า 99–106)', signal: true },
+    dividend: { name: 'ปันผลสูง (แบบ Dogs of the Dow)', desc: 'ถือเท่ากันเฉพาะครึ่งที่อัตราปันผลสูงสุด ตัวที่ไม่จ่ายปันผลไม่ถูกเลือก (Paulos หน้า 105)', signal: true },
   };
 
   // Signal-driven weights from a price index idx[i][t]; weights may sum to less than 1 (rest is cash).
   // Returns null while there isn't enough history yet.
-  function signalWeights(method, idx, t) {
+  function signalWeights(method, idx, t, ctx) {
     const n = idx.length;
+    if (method === 'value' || method === 'dividend') {
+      // Point-in-time fundamentals: the latest annual report filed on or before day t.
+      if (!ctx || !ctx.fundAt) return null;
+      const score = [];
+      ctx.tickers.forEach((tk, i) => {
+        const f = ctx.fundAt(tk, ctx.dates[t]);
+        if (!f) return;
+        const px = ctx.close[i][t];
+        const v = method === 'value' ? f.eps / px : (f.dps || 0) / px;
+        if (isFinite(v) && v > 0) score.push({ i, v });
+      });
+      if (!score.length) return null;
+      const top = score.sort((a, b) => b.v - a.v).slice(0, Math.ceil(score.length / 2));
+      const w = new Array(n).fill(0);
+      for (const x of top) w[x.i] = 1 / top.length;
+      return w;
+    }
     if (method === 'momentum') {
       if (t < YEAR) return null;
       const mom = idx.map((p, i) => ({ i, m: p[t - 21] / p[t - YEAR] - 1 }));
@@ -147,7 +166,7 @@
       const boundary = t === s || (key && t < e && key(new Date(dates[t])) !== key(new Date(dates[t + 1])));
       if (boundary) {
         const a = Math.max(0, t - (o.lookback || YEAR));
-        const target = (idx && signalWeights(o.method, idx, t)) ||
+        const target = (idx && signalWeights(o.method, idx, t, o.ctx)) ||
           (!idx && t - a >= 60 ? weightsFor(o.method, estimate(R, a, t), o.rf || 0) : new Array(n).fill(1 / n));
         const tv = target.reduce((sum, x, i) => sum + Math.abs(x - w[i]), 0);
         if (t > s) turnover += tv;
@@ -164,7 +183,34 @@
     return { equity, rets, last, turnoverPerYear: years > 0 ? turnover / years : 0, rebalances };
   }
 
-  QL.portfolio = { align, returnsOf, estimate, projSimplex, minQuad, frontier, weightsFor, signalWeights, backtest, METHODS };
+  // Walk-forward over weighting methods: each test year uses the method with the best Sharpe in
+  // the previous `train` days of the methods' own (already look-ahead free) daily returns.
+  // Switching cost between methods is not charged.
+  function methodWalkForward(times, runs, train = 2 * YEAR, test = YEAR) {
+    const keys = Object.keys(runs), n = times.length;
+    if (n < train + 60) return null;
+    const sharpe = (r, a, b) => {
+      let s = 0, s2 = 0;
+      for (let t = a + 1; t <= b; t++) { s += r[t]; s2 += r[t] * r[t]; }
+      const m = s / (b - a), sd = Math.sqrt(Math.max(s2 / (b - a) - m * m, 0));
+      return sd > 0 ? (m / sd) * Math.sqrt(YEAR) : 0;
+    };
+    const folds = [], rets = [0];
+    for (let t0 = train; t0 < n - 20; t0 += test) {
+      const t1 = Math.min(t0 + test, n - 1);
+      let pick = keys[0], best = -Infinity;
+      for (const k of keys) {
+        const s = sharpe(runs[k].rets, t0 - train, t0);
+        if (s > best) { best = s; pick = k; }
+      }
+      folds.push({ from: times[t0], to: times[t1], pick, trainSharpe: best });
+      for (let t = t0 + 1; t <= t1; t++) rets.push(runs[pick].rets[t]);
+    }
+    let v = 100;
+    return { folds, start: train, times: times.slice(train, train + rets.length), rets, equity: rets.map((x) => (v *= 1 + x)) };
+  }
+
+  QL.portfolio = { methodWalkForward, align, returnsOf, estimate, projSimplex, minQuad, frontier, weightsFor, signalWeights, backtest, METHODS };
 
   // ---------- view ----------
 
@@ -188,6 +234,7 @@
       range: '5Y',
       method: 'minvar',
       rebalance: 'quarter',
+      bench: 'SPY',
       costBps: 5,
       rf: 2,
       tableView: {},
@@ -199,11 +246,12 @@
     if (METHODS[q.get('pm')]) st.method = q.get('pm');
     if (['month', 'quarter', 'year', 'none'].includes(q.get('pr'))) st.rebalance = q.get('pr');
     if (['3Y', '5Y', '10Y', 'ALL'].includes(q.get('pg'))) st.range = q.get('pg');
+    if (has((q.get('pb') || '').toUpperCase())) st.bench = q.get('pb').toUpperCase();
     const qn = (k, lo, hi, def) => { const v = parseFloat(q.get(k)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
     st.costBps = qn('pc', 0, 200, st.costBps);
     st.rf = qn('prf', 0, 20, st.rf);
     const link = () => location.origin + location.pathname + '?' + new URLSearchParams({
-      pt: st.tickers.join(','), pm: st.method, pr: st.rebalance, pg: st.range, pc: st.costBps, prf: st.rf,
+      pt: st.tickers.join(','), pm: st.method, pr: st.rebalance, pg: st.range, pb: st.bench, pc: st.costBps, prf: st.rf,
     }).toString();
     let built = false, els = {}, result = null, token = 0;
 
@@ -298,6 +346,7 @@
       row2.append(rangeField,
         sel('วิธีจัดน้ำหนัก (เส้นหลักในกราฟ)', Object.entries(METHODS).map(([k, m]) => [k, m.name]), st.method, (v) => { st.method = v; render(); }),
         sel('ปรับสัดส่วน', [['month', 'ทุกเดือน'], ['quarter', 'ทุกไตรมาส'], ['year', 'ทุกปี'], ['none', 'ไม่ปรับเลย (ซื้อแล้วถือ)']], st.rebalance, (v) => { st.rebalance = v; update(); }),
+        sel('ดัชนีเปรียบเทียบ', universe.filter((u) => /ETF/.test(u.sector)).map((u) => [u.ticker, u.ticker + ' · ' + u.name]), st.bench, (v) => { st.bench = v; update(); }),
         numIn('ค่าธรรมเนียม (bps)', st.costBps, 0, 200, 0.5, (v) => { st.costBps = v; update(); }),
         numIn('Risk-free (%/ปี)', st.rf, 0, 20, 0.25, (v) => { st.rf = v; update(); }));
       const share = h('button', 'btn btn-outline', 'คัดลอกลิงก์การตั้งค่านี้');
@@ -310,13 +359,14 @@
       ctl.append(row1, row2, els.status);
 
       const grid = h('section', 'grid');
-      els.equity = card('มูลค่าพอร์ต (เริ่ม 100)', 'วิธีที่เลือก เทียบน้ำหนักเท่ากันและ SPY (ดัชนี S&P 500)', true, 'equity');
+      els.equity = card('มูลค่าพอร์ต (เริ่ม 100)', 'วิธีที่เลือก เทียบน้ำหนักเท่ากันและดัชนีที่เลือก', true, 'equity');
       els.compare = card('เปรียบเทียบวิธีจัดน้ำหนัก', 'ผลจริงของแต่ละวิธีในช่วงเดียวกัน · Sharpe = ผลตอบแทนส่วนเกินต่อความผันผวน (Paulos หน้า 158)', true);
+      els.wf = card('Walk-forward: เลือกวิธีใหม่ทุกปี', 'ทุกปีเลือกวิธีจัดน้ำหนักที่ Sharpe ดีที่สุดใน 2 ปีก่อนหน้า แล้วใช้ปีถัดไป เทียบกับการใช้วิธีเดียวตลอด ในช่วงเดียวกัน (Paulos หน้า 28–30, 44)', true);
       els.weights = card('น้ำหนักล่าสุด', 'สัดส่วนที่แต่ละวิธีถืออยู่ตอนปรับครั้งล่าสุด', false);
       els.corr = card('Correlation ระหว่างหุ้น', 'ใกล้ 1 = ขึ้นลงพร้อมกัน (กระจายความเสี่ยงได้น้อย) · ใกล้ 0 หรือติดลบ = ช่วยลดความเสี่ยง (Paulos หน้า 149–154)', false);
       els.frontier = card('Efficient frontier', 'ทุกจุดบนเส้นคือพอร์ตที่ผลตอบแทนสูงสุดในแต่ละระดับความเสี่ยง (Markowitz, Paulos หน้า 156–157) · เส้นนี้คำนวณจากข้อมูลทั้งช่วง ซึ่งรู้ผลย้อนหลังแล้ว จึงดีกว่าที่ทำได้จริง', true, 'frontier');
       els.div = card('การกระจายความเสี่ยงช่วยได้แค่ไหน', null, true);
-      grid.append(els.equity.art, els.compare.art, els.weights.art, els.corr.art, els.frontier.art, els.div.art);
+      grid.append(els.equity.art, els.compare.art, els.wf.art, els.weights.art, els.corr.art, els.frontier.art, els.div.art);
       container.append(ctl, grid);
       update();
     }
@@ -362,7 +412,7 @@
       syncControls();
       const my = ++token;
       setStatus('กำลังโหลดราคา…');
-      const need = [...new Set(st.tickers.concat(has('SPY') ? ['SPY'] : []))];
+      const need = [...new Set(st.tickers.concat(has(st.bench) ? [st.bench] : []))];
       Promise.all(need.map((t) => QL.data.loadStock(t))).then((list) => {
         if (my !== token) return;
         const byT = Object.fromEntries(need.map((t, i) => [t, list[i]]));
@@ -388,7 +438,8 @@
         return;
       }
       const times = dates.slice(s, e + 1);
-      const o = { rebalance: st.rebalance === 'none' ? null : st.rebalance, costBps: st.costBps, rf: st.rf };
+      const o = { rebalance: st.rebalance === 'none' ? null : st.rebalance, costBps: st.costBps, rf: st.rf,
+        ctx: { close: al.close, dates, tickers: st.tickers, fundAt: QL.data.fundAt } };
       const runs = {};
       for (const k of Object.keys(METHODS)) {
         const r = backtest(dates, R, s, e, Object.assign({ method: k }, o));
@@ -396,8 +447,9 @@
         runs[k] = r;
       }
       let spy = null;
-      if (byT.SPY) {
-        const m = new Map(byT.SPY.dates.map((t, i) => [t, byT.SPY.close[i]]));
+      const bm = byT[st.bench];
+      if (bm) {
+        const m = new Map(bm.dates.map((t, i) => [t, bm.close[i]]));
         let prev = null;
         const px = times.map((t) => (prev = m.has(t) ? m.get(t) : prev));
         if (px[0] != null) {
@@ -411,14 +463,14 @@
         const eq = times.map((_, k) => (100 * al.close[i][s + k]) / al.close[i][s]);
         return { t, metrics: BT.metrics(times, eq, R[i].slice(s, e + 1), null, null, st.rf), mu: est.mu[i], vol: Math.sqrt(est.cov[i][i]) };
       });
-      result = { dates, times, runs, spy, est, singles, front: frontier(est.cov, est.mu, 40, 400) };
+      result = { dates, times, runs, spy, est, singles, front: frontier(est.cov, est.mu, 40, 400), wf: methodWalkForward(times, runs) };
       const short = s < YEAR ? ' · ข้อมูลก่อนช่วงทดสอบมีไม่ถึง 1 ปี ช่วงแรกจึงใช้น้ำหนักเท่ากันจนกว่าจะมีข้อมูลพอ' : '';
       setStatus(st.tickers.length + ' หุ้น · ' + isoDate(dates[s]) + ' ถึง ' + isoDate(dates[e]) + ' · ราคาปิดปรับปันผลแล้ว' + short);
     }
 
     function render() {
       if (!result) {
-        for (const k of ['equity', 'compare', 'weights', 'corr', 'frontier', 'div']) els[k].body.textContent = '';
+        for (const k of ['equity', 'compare', 'wf', 'weights', 'corr', 'frontier', 'div']) els[k].body.textContent = '';
         return;
       }
       const r = result, M = METHODS[st.method];
@@ -428,12 +480,13 @@
       renderCorr(r);
       renderFrontier(r);
       renderDiv(r);
+      renderWf(r);
     }
 
     function renderEquity(r, M) {
       const series = [{ name: M.name, values: r.runs[st.method].equity, color: 1 }];
       if (st.method !== 'equal') series.push({ name: METHODS.equal.name, values: r.runs.equal.equity, color: 2 });
-      if (r.spy) series.push({ name: 'SPY (S&P 500)', values: r.spy.equity, color: 3 });
+      if (r.spy) series.push({ name: st.bench + ' (ดัชนีเทียบ)', values: r.spy.equity, color: 3 });
       if (st.tableView.equity) {
         const step = Math.max(1, Math.floor(r.times.length / 60));
         const rows = [];
@@ -460,7 +513,7 @@
       }, extra);
       const rows = Object.entries(METHODS).map(([k, M]) => row(M.name + (k === st.method ? ' (เลือกอยู่)' : ''), r.runs[k].metrics,
         { turn: r.runs[k].turnoverPerYear ? (r.runs[k].turnoverPerYear * 100).toFixed(0) + '%' : '0%', _cls: k === st.method ? 'is-selected' : '' }));
-      if (r.spy) rows.push(row('SPY (S&P 500)', r.spy.metrics, { turn: '—' }));
+      if (r.spy) rows.push(row(st.bench + ' (ดัชนีเทียบ)', r.spy.metrics, { turn: '—' }));
       const avg = (f) => r.singles.reduce((a, x) => a + f(x.metrics), 0) / r.singles.length;
       rows.push(row('หุ้นเดี่ยวเฉลี่ย (ถือตัวเดียว)', { cagr: avg((m) => m.cagr), vol: avg((m) => m.vol), sharpe: avg((m) => m.sharpe), maxDD: avg((m) => m.maxDD) }, { turn: '—' }));
       C.table(els.compare.body, [
@@ -472,6 +525,50 @@
         { key: 'turn', label: 'ซื้อขายต่อปี', num: true },
       ], rows, { caption: 'เปรียบเทียบวิธีจัดน้ำหนัก' });
       els.compare.body.append(h('p', 'sweep-axis', 'ซื้อขายต่อปี = มูลค่าที่ต้องซื้อขายเพื่อปรับสัดส่วน คิดเป็น % ของพอร์ตต่อปี ยิ่งมากยิ่งเสียค่าธรรมเนียมมาก · Sharpe สูงสุดใช้ผลตอบแทนย้อนหลัง 1 ปีซึ่งแกว่งมาก น้ำหนักจึงเปลี่ยนบ่อยและมักไม่ได้ดีอย่างที่ชื่อบอก'));
+    }
+
+    function renderWf(r) {
+      const body = els.wf.body;
+      body.textContent = '';
+      const wf = r.wf;
+      if (!wf) {
+        body.append(h('p', 'empty-state scan-empty', 'ต้องมีข้อมูลอย่างน้อยประมาณ 2 ปีครึ่ง เลือกช่วง 5 ปีขึ้นไป'));
+        return;
+      }
+      C.table(body, [
+        { key: 'span', label: 'ปีที่ใช้' },
+        { key: 'pick', label: 'วิธีที่เลือก' },
+        { key: 'sh', label: 'Sharpe 2 ปีก่อน', num: true },
+      ], wf.folds.map((f) => ({ span: isoDate(f.from) + ' ถึง ' + isoDate(f.to), pick: METHODS[f.pick].name, sh: num(f.trainSharpe) })),
+      { caption: 'วิธีที่ walk-forward เลือกในแต่ละปี' });
+      const span = (eq) => { const base = eq[wf.start]; return eq.slice(wf.start, wf.start + wf.times.length).map((v) => (100 * v) / base); };
+      const mOf = (eq) => {
+        const rr = eq.map((v, i) => (i ? v / eq[i - 1] - 1 : 0));
+        return BT.metrics(wf.times, eq, rr, null, null, st.rf);
+      };
+      const rows = [{ name: 'Walk-forward (เลือกวิธีใหม่ทุกปี)', m: BT.metrics(wf.times, wf.equity, wf.rets, null, null, st.rf), _cls: 'is-selected' }]
+        .concat(Object.entries(METHODS).map(([k, M]) => ({ name: M.name + ' ตลอด', m: mOf(span(r.runs[k].equity)) })));
+      if (r.spy) rows.push({ name: st.bench + ' (ดัชนีเทียบ)', m: mOf(span(r.spy.equity)) });
+      const wrap = h('div');
+      body.append(wrap);
+      C.table(wrap, [
+        { key: 'name', label: 'ช่วง ' + isoDate(wf.times[0]) + ' ถึง ' + isoDate(wf.times[wf.times.length - 1]) },
+        { key: 'cagr', label: 'CAGR', num: true },
+        { key: 'sharpe', label: 'Sharpe', num: true },
+        { key: 'dd', label: 'Max DD', num: true },
+      ], rows.map((x) => ({ name: x.name, cagr: pct(x.m.cagr), sharpe: num(x.m.sharpe), dd: pct(x.m.maxDD), _cls: x._cls })),
+      { caption: 'เทียบ walk-forward กับการใช้วิธีเดียวตลอด' });
+      const others = rows.slice(1, 1 + Object.keys(METHODS).length).map((x) => x.m.sharpe).sort((a, b) => b - a);
+      const wfS = rows[0].m.sharpe;
+      const rank = others.filter((s) => s > wfS).length + 1;
+      const p = h('p', 'math-verdict ' + (rank <= Math.ceil(others.length / 2) ? 'is-good' : 'is-bad'));
+      const icon = h('span', null, rank <= Math.ceil(others.length / 2) ? '✓ ' : '⚠ ');
+      icon.setAttribute('aria-hidden', 'true');
+      p.append(icon, document.createTextNode('การเลือกวิธีจากผลงานย้อนหลังได้ Sharpe ' + num(wfS) + ' อยู่อันดับ ' + rank + ' จาก ' + (others.length + 1) +
+        ' เมื่อเทียบกับการใช้วิธีเดียวตลอด · ' + (rank <= Math.ceil(others.length / 2)
+          ? 'การไล่ตามวิธีที่เพิ่งได้ผลดีไม่ได้ทำให้แย่ลง'
+          : 'วิธีที่เพิ่งได้ผลดีมักไม่ได้ดีต่อ (regression to the mean) การเลือกวิธีเดียวแล้วใช้ตลอดอาจดีกว่า')));
+      body.append(p, h('p', 'sweep-axis', 'ไม่รวมค่าธรรมเนียมตอนเปลี่ยนวิธี (ปีละไม่เกินหนึ่งครั้ง)'));
     }
 
     function renderWeights(r) {
@@ -512,7 +609,7 @@
         { name: 'วิธีจัดน้ำหนัก (ผลจริง)', color: 3, shape: 'rect' },
       ];
       const pts = r.singles.map((x) => ({ x: x.vol, y: x.mu, group: 0, label: x.t, name: x.t }));
-      const short = { equal: 'EW', invvol: 'IV', minvar: 'MV', maxsharpe: 'MS', momentum: 'MO', trend: 'TR' };
+      const short = { equal: 'EW', invvol: 'IV', minvar: 'MV', maxsharpe: 'MS', momentum: 'MO', trend: 'TR', value: 'VA', dividend: 'DV' };
       for (const [k, M] of Object.entries(METHODS)) {
         const m = r.runs[k].metrics;
         const rets = r.runs[k].rets.slice(1);
@@ -535,7 +632,7 @@
         xFormat: (v) => (v * 100).toFixed(0) + '%', yFormat: (v) => (v * 100).toFixed(0) + '%',
         xLabel: 'ความผันผวน/ปี (ความเสี่ยง)', yLabel: 'ผลตอบแทนเฉลี่ย/ปี', ariaLabel: 'Efficient frontier',
       });
-      els.frontier.body.append(h('p', 'sweep-axis', 'EW = เท่ากัน · IV = ตามความผันผวน · MV = ความเสี่ยงต่ำสุด · MS = Sharpe สูงสุด · MO = Momentum · TR = ตามเทรนด์ · จุดของวิธีจัดน้ำหนักใช้ผลจริงที่ไม่รู้อนาคต จึงมักอยู่ใต้เส้น'));
+      els.frontier.body.append(h('p', 'sweep-axis', 'EW = เท่ากัน · IV = ตามความผันผวน · MV = ความเสี่ยงต่ำสุด · MS = Sharpe สูงสุด · MO = Momentum · TR = ตามเทรนด์ · VA = Value · DV = ปันผลสูง · จุดของวิธีจัดน้ำหนักใช้ผลจริงที่ไม่รู้อนาคต จึงมักอยู่ใต้เส้น'));
     }
 
     function renderDiv(r) {
