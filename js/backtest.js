@@ -180,6 +180,20 @@
     return { beta: vx > 0 ? cov / vx : NaN, corr: vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : NaN, n };
   }
 
+  // Up to 7 values of a numeric strategy parameter around its default, snapped to its step
+  // and range: multiplicative (x0.5 .. x2) for large values, linear steps for small ones.
+  function gridValues(d) {
+    const dec = (String(d.step).split('.')[1] || '').length;
+    const snap = (v) => +Math.min(d.max, Math.max(d.min, Math.round(v / d.step) * d.step)).toFixed(dec);
+    const uniq = (a) => [...new Set(a)].sort((x, y) => x - y);
+    let out = uniq([0.5, 0.67, 0.8, 1, 1.25, 1.5, 2].map((f) => snap(d.def * f)));
+    if (out.length < 5) {
+      const s = Math.max(d.step, Math.round((d.max - d.min) / 12 / d.step) * d.step);
+      out = uniq([-3, -2, -1, 0, 1, 2, 3].map((k) => snap(d.def + k * s)));
+    }
+    return out;
+  }
+
   function monthlyReturns(times, equity) {
     const rows = new Map();
     let prevEnd = 100;
@@ -221,5 +235,5 @@
     return bins;
   }
 
-  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta };
+  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta, gridValues };
 })((window.QL = window.QL || {}));

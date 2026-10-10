@@ -366,16 +366,23 @@
   const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 
   // Diverging heatmap: negative -> red pole, zero -> neutral gray, positive -> blue pole.
+  // Defaults to the monthly-returns layout (rows {year, months, total}); a generic grid passes
+  // cols, rows {label, values}, total: false, and optionally corner, valueName, cellLabel,
+  // mark(ri, ci) -> prefix text, onCell(ri, ci), and lim to share one colour scale across grids.
   function heatmap(container, cfg) {
     container.textContent = '';
-    const cs = getComputedStyle(container);
+    // A container that isn't in the document yet has no computed custom properties.
+    const cs = getComputedStyle(container.isConnected ? container : document.documentElement);
     const neg = parseColor(cs.getPropertyValue('--div-neg'));
     const mid = parseColor(cs.getPropertyValue('--div-mid'));
     const pos = parseColor(cs.getPropertyValue('--div-pos'));
+    const cols = cfg.cols || TH_MONTHS;
+    const withTotal = cfg.total !== false;
+    const valsOf = (r) => r.values || r.months;
     const all = [];
-    for (const r of cfg.rows) for (const v of r.months) if (v != null) all.push(Math.abs(v));
+    for (const r of cfg.rows) for (const v of valsOf(r)) if (v != null) all.push(Math.abs(v));
     all.sort((a, b) => a - b);
-    const lim = Math.max(all[Math.floor(all.length * 0.95)] || 0.01, 0.005);
+    const lim = cfg.lim || Math.max(all[Math.floor(all.length * 0.95)] || 0.01, 0.005);
     const colorFor = (v) => {
       const t = Math.min(1, Math.abs(v) / lim);
       const rgb = mix(mid, v < 0 ? neg : pos, t);
@@ -383,34 +390,39 @@
     };
 
     const scroller = h('div', 'table-scroll');
-    const table = h('table', 'heatmap');
+    const table = h('table', 'heatmap' + (cfg.cls ? ' ' + cfg.cls : ''));
     const cap = h('caption', 'sr-only', cfg.caption || '');
     table.appendChild(cap);
     const thead = h('thead');
     const hr = h('tr');
-    hr.appendChild(h('th', null, 'ปี'));
-    for (const mn of TH_MONTHS) hr.appendChild(h('th', null, mn));
-    hr.appendChild(h('th', 'col-total', 'ทั้งปี'));
+    hr.appendChild(h('th', null, cfg.corner || 'ปี'));
+    for (const mn of cols) hr.appendChild(h('th', null, mn));
+    if (withTotal) hr.appendChild(h('th', 'col-total', 'ทั้งปี'));
     thead.appendChild(hr);
     table.appendChild(thead);
     const tbody = h('tbody');
     const tip = makeTooltip(scroller);
 
-    for (const r of cfg.rows) {
+    cfg.rows.forEach((r, ri) => {
       const tr = h('tr');
-      tr.appendChild(h('th', null, String(r.year)));
-      r.months.forEach((v, mi) => {
+      const rowLabel = r.label != null ? String(r.label) : String(r.year);
+      tr.appendChild(h('th', null, rowLabel));
+      valsOf(r).forEach((v, mi) => {
         const td = h('td');
         if (v == null) { td.className = 'empty'; tr.appendChild(td); return; }
         const c = colorFor(v);
-        const cell = h('span', 'cell', cfg.format(v));
+        const mark = cfg.mark ? cfg.mark(ri, mi) : '';
+        const cell = h(cfg.onCell ? 'button' : 'span', 'cell', (mark || '') + cfg.format(v));
+        if (cfg.onCell) {
+          cell.type = 'button';
+          cell.addEventListener('click', () => cfg.onCell(ri, mi));
+        } else cell.tabIndex = 0;
         cell.style.background = c.bg;
         cell.style.color = c.fg;
-        cell.tabIndex = 0;
-        const label = TH_MONTHS[mi] + ' ' + r.year;
+        const label = cfg.cellLabel ? cfg.cellLabel(ri, mi) : cols[mi] + ' ' + rowLabel;
         cell.setAttribute('aria-label', label + ': ' + cfg.format(v));
         const on = () => {
-          fillTooltip(tip, label, [{ value: cfg.format(v), name: 'ผลตอบแทนรายเดือน' }]);
+          fillTooltip(tip, label, [{ value: cfg.format(v), name: cfg.valueName || 'ผลตอบแทนรายเดือน' }]);
           const cr = cell.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
           placeTooltip(tip, scroller, cr.right - sr.left + scroller.scrollLeft - 10, cr.bottom - sr.top + 4);
         };
@@ -421,9 +433,9 @@
         td.appendChild(cell);
         tr.appendChild(td);
       });
-      tr.appendChild(h('td', 'col-total', cfg.format(r.total)));
+      if (withTotal) tr.appendChild(h('td', 'col-total', cfg.format(r.total)));
       tbody.appendChild(tr);
-    }
+    });
     table.appendChild(tbody);
     scroller.appendChild(table);
     container.appendChild(scroller);

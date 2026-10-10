@@ -118,8 +118,11 @@ Market* (2003). Features built from it, with the page numbers shown in the UI:
 | Beta and correlation vs SPY | 159–162 |
 | First-half vs second-half out-of-sample check | 28–30 |
 | Survivorship-bias note on the scanner | 30–31 |
+| Parameter-sweep heatmaps (first-half Sharpe picks, second-half Sharpe tests; click a cell to apply) | 28–30, 44 |
+
+The sweep uses the strategy's first two params, 7 values each around the defaults
+(`BT.gridValues`), and caches by data + window + settings so re-renders are cheap.
 
 Ideas from the book not built yet:
 - Value ratios (P/E, P/B, PEG, Dogs of the Dow). These need fundamentals data, which isn't available.
 - DeBondt–Thaler 3–5 year contrarian losers. This needs a longer scan history than the current 2 years.
-- Parameter-sweep heatmap with an out-of-sample split.
