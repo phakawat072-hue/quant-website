@@ -519,6 +519,27 @@ body.is-busy .chart { opacity: 0.6; }
 
 .empty-state { padding: 48px 0; text-align: center; color: var(--text-muted); font-size: 14px; }
 
+/* ---------- math check card ---------- */
+.math-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.math-card > *, .math-section > * { min-width: 0; }
+.math-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.math-tile {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.math-value { font-size: 22px; font-weight: 600; line-height: 1.3; }
+.math-ref { font-size: 11px; color: var(--text-muted); margin-top: auto; padding-top: 4px; }
+.math-section { display: grid; gap: 8px; }
+.math-section h3 { font-size: 15px; font-weight: 600; }
+.math-verdict { font-size: 13px; font-weight: 500; }
+@media (max-width: 860px) {
+  .math-tiles { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* ---------- tables ---------- */
 .table-scroll { position: relative; overflow-x: auto; max-height: 460px; overflow-y: auto; }
 .data-table, .heatmap { border-collapse: collapse; width: 100%; font-size: 13px; }

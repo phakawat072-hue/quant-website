@@ -25,6 +25,7 @@
     costBps: 5,
     rf: 2,
     allowShort: false,
+    stop: { type: 'none', pct: 10 },
     log: false,
     tableView: {},
     pos: null,
@@ -294,6 +295,16 @@
       run();
     });
     $('shortInput').addEventListener('change', (e) => { state.allowShort = e.target.checked; run(); });
+    $('stopType').addEventListener('change', (e) => {
+      state.stop.type = e.target.value;
+      $('stopPct').disabled = state.stop.type === 'none';
+      run();
+    });
+    $('stopPct').addEventListener('change', (e) => {
+      state.stop.pct = clamp(parseFloat(e.target.value), 1, 50, 10);
+      e.target.value = state.stop.pct;
+      run();
+    });
     $('logInput').addEventListener('change', (e) => { state.log = e.target.checked; renderEquity(); });
 
     $('reseedBtn').addEventListener('click', () => {
@@ -396,10 +407,11 @@
   });
 
   // ---------- run ----------
-  function runStrategy(key, params) {
+  function runStrategy(key, params, opts) {
     const strat = STRATEGIES[key];
-    const pos = strat.signal(state.data.close, params, state.allowShort);
-    return { pos, res: BT.run(state.data, pos, state.s, state.e, { costBps: state.costBps, rf: state.rf }) };
+    const pos = strat.signal(state.data.close, params, state.allowShort, state.data.dates);
+    const o = Object.assign({ costBps: state.costBps, rf: state.rf, stop: state.stop, s: state.s, e: state.e }, opts);
+    return { pos, res: BT.run(state.data, pos, o.s, o.e, o) };
   }
 
   function run() {
@@ -418,6 +430,7 @@
     renderHeatmap();
     renderCompare();
     renderTrades();
+    renderMath();
     document.body.classList.remove('is-busy');
   }
 
@@ -481,7 +494,8 @@
       kpiTile('ความผันผวนต่อปี', pct(m.vol, 1, false), 'Buy & Hold ' + pct(b.vol, 1, false), { diff: m.vol - b.vol, text: pp(m.vol - b.vol), higherIsBetter: false }),
       kpiTile('Calmar Ratio', num(m.calmar), 'Buy & Hold ' + num(b.calmar), { diff: m.calmar - b.calmar, text: sd(m.calmar - b.calmar), higherIsBetter: true }),
       kpiTile('อัตราชนะ (Win rate)', pct(m.winRate, 0, false), 'Profit factor ' + num(m.profitFactor)),
-      kpiTile('จำนวนเทรด', m.trades.toLocaleString('en-US'), 'ถือสถานะ ' + pct(m.exposure, 0, false) + ' ของเวลา'),
+      kpiTile('จำนวนเทรด', m.trades.toLocaleString('en-US'), 'ถือสถานะ ' + pct(m.exposure, 0, false) + ' ของเวลา' +
+        (state.stop.type !== 'none' ? ' · โดน stop ' + m.stops + ' ครั้ง' : '')),
     );
   }
 
@@ -544,7 +558,7 @@
       overlays.forEach((o, k) => cols.push({ key: 'o' + k, label: o.legend === false ? o.name + ' (ล่าง)' : o.name, num: true }));
       cols.push({ key: 'pos', label: 'สถานะ' });
       const rows = monthEndIndices(r.times).reverse().map((i) => {
-        const row = { date: isoDate(r.times[i]), close: num(close[i]), pos: posLabel(state.pos[state.s + i]) };
+        const row = { date: isoDate(r.times[i]), close: num(close[i]), pos: posLabel(r.target[i]) };
         overlays.forEach((o, k) => (row['o' + k] = num(o.values[i])));
         return row;
       });
@@ -555,7 +569,7 @@
     const markers = [];
     let prev = 0;
     for (let k = 0; k < close.length; k++) {
-      const p = state.pos[state.s + k];
+      const p = r.target[k];
       if (p !== prev) markers.push({ i: k, dir: Math.sign(p - prev) });
       prev = p;
     }
@@ -565,7 +579,7 @@
       markers: markers.length <= 400 ? markers : [],
       yFormat: (v) => compact(v),
       tipFormat: (v) => num(v),
-      extraTip: (i) => [{ value: posLabel(state.pos[state.s + i]), name: 'สถานะหลังปิดวัน' }],
+      extraTip: (i) => [{ value: posLabel(r.target[i]), name: 'สถานะหลังปิดวัน' }],
       height: 320,
       ariaLabel: 'กราฟราคา ' + state.data.name + ' พร้อมอินดิเคเตอร์และจุดซื้อขาย',
     });
@@ -688,6 +702,7 @@
         exitPx: num(c[exitIdx]),
         days: Math.round((d[exitIdx] - d[t.entry]) / DAY),
         ret: { text: (t.ret > 0 ? '▲ ' : t.ret < 0 ? '▼ ' : '') + pct(t.ret, 2), cls: t.ret > 0 ? 'is-good' : t.ret < 0 ? 'is-bad' : null },
+        note: t.stopped ? 'โดน stop-loss' : '',
       };
     });
     C.table($('tradeTable'), [
@@ -699,7 +714,170 @@
       { key: 'exitPx', label: 'ราคาออก', num: true },
       { key: 'days', label: 'จำนวนวัน', num: true },
       { key: 'ret', label: 'ผลตอบแทน', num: true },
+      { key: 'note', label: 'หมายเหตุ' },
     ], rows, { caption: 'บันทึกการเทรด' });
+  }
+
+  // ---------- math check card (Paulos, A Mathematician Plays the Stock Market) ----------
+  let spy = null;
+  let spyLoading = false;
+
+  function ensureSpy() {
+    if (spy || spyLoading || !stocks.some((t) => t.ticker === 'SPY')) return;
+    spyLoading = true;
+    QL.data.loadStock('SPY').then((d) => {
+      const map = new Map();
+      for (let i = 1; i < d.dates.length; i++) map.set(d.dates[i], d.close[i] / d.close[i - 1] - 1);
+      spy = { map };
+      if (state.res) renderMath();
+    }).catch(() => { spyLoading = false; });
+  }
+
+  function mk(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function mathTile(title, value, sub, pages) {
+    const t = mk('div', 'math-tile');
+    t.append(mk('h3', 'kpi-label', title), mk('p', 'math-value', value), mk('p', 'kpi-sub', sub), mk('p', 'math-ref', 'Paulos หน้า ' + pages));
+    return t;
+  }
+
+  function mathSection(title, desc) {
+    const s = mk('section', 'math-section');
+    s.appendChild(mk('h3', null, title));
+    if (desc) s.appendChild(mk('p', 'card-sub', desc));
+    return s;
+  }
+
+  function verdict(ok, text) {
+    const p = mk('p', 'math-verdict ' + (ok ? 'is-good' : 'is-bad'));
+    const icon = mk('span', null, ok ? '✓ ' : '⚠ ');
+    icon.setAttribute('aria-hidden', 'true');
+    p.append(icon, document.createTextNode(text));
+    return p;
+  }
+
+  function renderMath() {
+    const box = $('mathCard');
+    const r = state.res, d = state.data;
+    if (!box || !r) return;
+    box.textContent = '';
+    const ppy = (r.times.length - 1) / r.metrics.years;
+
+    // 1. Statistics tiles
+    const tiles = mk('div', 'math-tiles');
+    const st = BT.returnStats(r.rets.slice(1), ppy);
+    if (st) {
+      tiles.appendChild(mathTile('ค่าเฉลี่ยหลอกตา', pct(st.arithAnnual) + ' vs ' + pct(st.geoAnnual),
+        'ค่าเฉลี่ยเลขคณิตต่อปีของกลยุทธ์ เทียบกับผลที่ได้จริง (ค่าเฉลี่ยเรขาคณิต) ส่วนต่างเกิดจากความผันผวน ≈ σ²/2 ยิ่งผันผวนยิ่งห่าง',
+        '95–99'));
+    }
+    const at = BT.returnStats(r.benchRets.slice(1), ppy);
+    if (at) {
+      tiles.appendChild(mathTile('หางอ้วน (Fat tails)', at.tails + ' วัน',
+        'วันที่ราคา ' + d.name + ' เหวี่ยงเกิน 3σ ถ้าเป็น bell curve ควรมีราว ' + at.tailsExpected.toFixed(1) + ' วัน (' +
+        (at.tailsExpected > 0 ? (at.tails / at.tailsExpected).toFixed(1) : '—') + ' เท่า) · kurtosis ' + num(at.kurtosis, 1) +
+        ' (bell curve = 3) · วันที่แย่สุด ' + pct(at.worst) + ' = ' + num(-at.worstSigma, 1) + 'σ',
+        '136–140, 175–181'));
+    }
+    let betaTile;
+    if (d.source === 'sim') {
+      betaTile = mathTile('Beta เทียบ S&P 500', '—', 'ข้อมูลจำลองไม่มีความสัมพันธ์กับตลาดจริง', '159–162');
+    } else if (!spy) {
+      betaTile = mathTile('Beta เทียบ S&P 500', '…', 'กำลังโหลดข้อมูล SPY', '159–162');
+      ensureSpy();
+    } else {
+      const x = [], ya = [], ys = [];
+      for (let k = 1; k < r.times.length; k++) {
+        const m = spy.map.get(r.times[k]);
+        if (m === undefined) continue;
+        x.push(m);
+        ya.push(r.benchRets[k]);
+        ys.push(r.rets[k]);
+      }
+      const ba = BT.beta(ya, x), bs = BT.beta(ys, x);
+      betaTile = ba
+        ? mathTile('Beta เทียบ S&P 500', num(ba.beta),
+          'หุ้น ' + d.name + ' ขยับประมาณ ' + num(ba.beta) + ' เท่าของตลาด (correlation ' + num(ba.corr) + ') · กลยุทธ์นี้มี beta ' +
+          num(bs.beta) + ' เพราะไม่ได้ถือหุ้นตลอดเวลา', '159–162')
+        : mathTile('Beta เทียบ S&P 500', '—', 'วันที่ตรงกับข้อมูล SPY มีน้อยเกินไป', '159–162');
+    }
+    tiles.appendChild(betaTile);
+    box.appendChild(tiles);
+
+    // 2. Out-of-sample check: first half vs second half
+    const sec = mathSection('ทดสอบนอกตัวอย่าง: ครึ่งแรก vs ครึ่งหลัง',
+      'ค้นข้อมูลมากพอย่อมเจอกฎที่ "เคยได้ผล" เสมอ (data mining) กลยุทธ์ที่ดีจริงควรได้ผลทั้งสองช่วง ไม่ใช่แค่ช่วงที่บังเอิญ · Paulos หน้า 28–30');
+    const s = state.s, e = state.e, mid = Math.floor((s + e) / 2);
+    const p = state.params[state.strategy];
+    if (mid - s < 60 || e - mid < 60) {
+      sec.appendChild(mk('p', 'empty-state scan-empty', 'ช่วงเวลาสั้นเกินไป เลือกช่วงอย่างน้อยประมาณ 1 ปี'));
+    } else {
+      const a = runStrategy(state.strategy, p, { s, e: mid }).res;
+      const b = runStrategy(state.strategy, p, { s: mid, e }).res;
+      const row = (label, x, from, to) => ({
+        label,
+        range: isoDate(d.dates[from]) + ' ถึง ' + isoDate(d.dates[to]),
+        cagr: pct(x.metrics.cagr),
+        sharpe: num(x.metrics.sharpe),
+        dd: pct(x.metrics.maxDD),
+        bh: pct(x.benchMetrics.cagr),
+        win: x.metrics.cagr > x.benchMetrics.cagr ? { text: '✓ ชนะ', cls: 'is-good' } : { text: '✗ แพ้', cls: 'is-bad' },
+      });
+      C.table(sec.appendChild(mk('div')), [
+        { key: 'label', label: 'ช่วง' },
+        { key: 'range', label: 'วันที่' },
+        { key: 'cagr', label: 'CAGR กลยุทธ์', num: true },
+        { key: 'sharpe', label: 'Sharpe', num: true },
+        { key: 'dd', label: 'Max DD', num: true },
+        { key: 'bh', label: 'CAGR Buy & Hold', num: true },
+        { key: 'win', label: 'เทียบ B&H' },
+      ], [row('ครึ่งแรก', a, s, mid), row('ครึ่งหลัง', b, mid, e), row('ทั้งช่วง', r, s, e)], { caption: 'ผลแยกครึ่งแรกและครึ่งหลัง' });
+      const am = a.metrics, bm = b.metrics;
+      const collapsed = (am.cagr > 0 && bm.cagr <= 0) || (am.sharpe > 0.3 && bm.sharpe < am.sharpe * 0.5);
+      sec.appendChild(collapsed
+        ? verdict(false, 'ผลครึ่งหลังแย่ลงมากเมื่อเทียบกับครึ่งแรก อาจเป็นการเลือกพารามิเตอร์ให้เข้ากับอดีต ลองเปลี่ยนพารามิเตอร์หรือหุ้นดูว่ายังได้ผลไหม')
+        : verdict(true, 'ผลทั้งสองช่วงไปในทางเดียวกัน กลยุทธ์ไม่ได้ดีแค่ช่วงเดียว (แต่ยังไม่รับประกันอนาคต)'));
+    }
+    box.appendChild(sec);
+
+    // 3. Stop-loss comparison
+    const ss = mathSection('ผลของ Stop-loss',
+      'ผู้เขียนขาดทุนหนักจาก WorldCom เพราะทุ่มหุ้นตัวเดียว ไม่ตั้ง stop-loss และซื้อถัวขาลง · Paulos หน้า 115, 198–202');
+    if (state.stop.type === 'none') {
+      ss.appendChild(mk('p', 'card-sub', 'เลือก "Stop-loss" ในแถวตั้งค่าด้านบน เพื่อเปรียบเทียบผลระหว่างมีและไม่มี stop-loss'));
+    } else {
+      const off = runStrategy(state.strategy, p, { stop: null }).res;
+      const label = (state.stop.type === 'trailing' ? 'เลื่อนตาม ' : 'คงที่ ') + state.stop.pct + '%';
+      const row = (name, x) => ({
+        name,
+        total: pct(x.metrics.total),
+        cagr: pct(x.metrics.cagr),
+        dd: pct(x.metrics.maxDD),
+        sharpe: num(x.metrics.sharpe),
+        trades: x.metrics.trades.toLocaleString('en-US'),
+        stops: x.metrics.stops.toLocaleString('en-US'),
+      });
+      C.table(ss.appendChild(mk('div')), [
+        { key: 'name', label: 'แบบ' },
+        { key: 'total', label: 'ผลตอบแทนรวม', num: true },
+        { key: 'cagr', label: 'CAGR', num: true },
+        { key: 'dd', label: 'Max DD', num: true },
+        { key: 'sharpe', label: 'Sharpe', num: true },
+        { key: 'trades', label: 'เทรด', num: true },
+        { key: 'stops', label: 'โดน stop', num: true },
+      ], [row('ไม่ใช้ stop-loss', off), row('ใช้ stop-loss ' + label, r)], { caption: 'เทียบผลมีและไม่มี stop-loss' });
+      const better = r.metrics.maxDD > off.metrics.maxDD;
+      ss.appendChild(verdict(better, better
+        ? 'Stop-loss ช่วยลดการขาดทุนสูงสุดจาก ' + pct(off.metrics.maxDD) + ' เหลือ ' + pct(r.metrics.maxDD) +
+          (r.metrics.total < off.metrics.total ? ' แลกกับผลตอบแทนรวมที่ลดลง' : '')
+        : 'Stop-loss ไม่ได้ช่วยลดการขาดทุนสูงสุดในช่วงนี้ อาจโดนขายบ่อยจนพลาดช่วงราคาฟื้นตัว ลองปรับ % ดู'));
+    }
+    box.appendChild(ss);
   }
 
   function exportCsv() {
@@ -709,7 +887,7 @@
     const lines = ['date,close,position,strategy_equity,buyhold_equity,drawdown'];
     for (let k = 0; k < r.times.length; k++) {
       const i = state.s + k;
-      lines.push([isoDate(r.times[k]), state.data.close[i].toFixed(4), state.pos[i], r.equity[k].toFixed(4), r.bench[k].toFixed(4), dd[k].toFixed(6)].join(','));
+      lines.push([isoDate(r.times[k]), state.data.close[i].toFixed(4), r.target[k], r.equity[k].toFixed(4), r.bench[k].toFixed(4), dd[k].toFixed(6)].join(','));
     }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
