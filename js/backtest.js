@@ -5,35 +5,63 @@
 
   // Signals are decided at the close of day t and earn day t+1's return, so
   // there is no look-ahead. Costs are charged on turnover at the trade close.
+  // opts.stop = { type: 'fixed' | 'trailing', pct } exits at the close that breaches the
+  // stop; the strategy then stays flat until its own signal changes.
   function run(data, pos, s, e, opts) {
     const { dates, close } = data;
     const cost = (opts.costBps || 0) / 10000;
+    const stop = opts.stop && opts.stop.type !== 'none' && opts.stop.pct > 0 ? opts.stop : null;
+    const sp = stop ? stop.pct / 100 : 0;
     const n = e - s + 1;
     const equity = new Array(n);
     const rets = new Array(n);
     const held = new Array(n);
+    const target = new Array(n);
     const trades = [];
     let cur = 0, eq = 100, open = null;
+    let entryPx = 0, extreme = 0, block = null, stopHit = false;
 
     for (let k = 0; k < n; k++) {
       const t = s + k;
-      const r = k === 0 ? 0 : close[t] / close[t - 1] - 1;
+      const c = close[t];
+      const r = k === 0 ? 0 : c / close[t - 1] - 1;
       const before = eq;
       eq *= 1 + cur * r;
       held[k] = cur;
-      const target = pos[t];
-      const turnover = Math.abs(target - cur);
+
+      let want = pos[t];
+      if (block !== null) {
+        if (want === block) want = 0;
+        else block = null;
+      }
+      stopHit = false;
+      if (stop && cur !== 0 && want === cur) {
+        extreme = cur > 0 ? Math.max(extreme, c) : Math.min(extreme, c);
+        const ref = stop.type === 'trailing' ? extreme : entryPx;
+        if (cur > 0 ? c <= ref * (1 - sp) : c >= ref * (1 + sp)) {
+          block = pos[t];
+          want = 0;
+          stopHit = true;
+        }
+      }
+
+      const turnover = Math.abs(want - cur);
       if (turnover > 0) {
         eq *= 1 - cost * turnover;
         if (open) {
           open.exit = t;
-          open.ret = open.side * (close[t] / close[open.entry] - 1) - 2 * cost;
+          open.ret = open.side * (c / close[open.entry] - 1) - 2 * cost;
+          open.stopped = stopHit;
           trades.push(open);
           open = null;
         }
-        if (target !== 0) open = { side: target, entry: t, exit: null, ret: 0 };
-        cur = target;
+        if (want !== 0) {
+          open = { side: want, entry: t, exit: null, ret: 0 };
+          entryPx = extreme = c;
+        }
+        cur = want;
       }
+      target[k] = cur;
       equity[k] = eq;
       rets[k] = eq / before - 1;
     }
@@ -56,6 +84,7 @@
       equity,
       rets,
       held,
+      target,
       trades,
       bench,
       benchRets,
@@ -102,8 +131,53 @@
       out.winRate = closed.length ? wins.length / closed.length : NaN;
       out.profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : NaN;
       out.exposure = held.filter((h) => h !== 0).length / Math.max(held.length - 1, 1);
+      out.stops = trades.filter((t) => t.stopped).length;
     }
     return out;
+  }
+
+  // Moments of a return series: arithmetic vs geometric mean and fat tails
+  // (count of |r - mean| > 3 sd vs the ~0.27% a normal distribution allows).
+  function returnStats(r, ppy) {
+    const x = r.filter(isFinite);
+    const n = x.length;
+    if (n < 30) return null;
+    const mean = x.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(x.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
+    const m4 = x.reduce((a, b) => a + (b - mean) ** 4, 0) / n;
+    const geo = Math.exp(x.reduce((a, b) => a + Math.log(1 + b), 0) / n) - 1;
+    let tails = 0, worst = 0;
+    for (const v of x) {
+      if (Math.abs(v - mean) > 3 * sd) tails++;
+      if (v < worst) worst = v;
+    }
+    return {
+      n,
+      arithAnnual: mean * ppy,
+      geoAnnual: Math.pow(1 + geo, ppy) - 1,
+      sd,
+      kurtosis: sd > 0 ? m4 / sd ** 4 : NaN,
+      tails,
+      tailsExpected: n * 0.0027,
+      worst,
+      worstSigma: sd > 0 ? (worst - mean) / sd : NaN,
+    };
+  }
+
+  // Slope of y on x (beta) and their correlation.
+  function beta(y, x) {
+    const n = Math.min(x.length, y.length);
+    if (n < 30) return null;
+    let mx = 0, my = 0;
+    for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; }
+    mx /= n; my /= n;
+    let cov = 0, vx = 0, vy = 0;
+    for (let i = 0; i < n; i++) {
+      cov += (x[i] - mx) * (y[i] - my);
+      vx += (x[i] - mx) ** 2;
+      vy += (y[i] - my) ** 2;
+    }
+    return { beta: vx > 0 ? cov / vx : NaN, corr: vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : NaN, n };
   }
 
   function monthlyReturns(times, equity) {
@@ -147,5 +221,5 @@
     return bins;
   }
 
-  QL.backtest = { run, drawdown, monthlyReturns, histogram };
+  QL.backtest = { run, drawdown, monthlyReturns, histogram, returnStats, beta };
 })((window.QL = window.QL || {}));
