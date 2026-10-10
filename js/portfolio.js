@@ -75,7 +75,30 @@
     invvol: { name: 'ตามความผันผวน', desc: 'ตัวที่ผันผวนน้อยได้น้ำหนักมาก (1/σ)' },
     minvar: { name: 'ความเสี่ยงต่ำสุด', desc: 'น้ำหนักที่ทำให้ความผันผวนของพอร์ตต่ำที่สุด ใช้ covariance' },
     maxsharpe: { name: 'Sharpe สูงสุด', desc: 'จุดบน efficient frontier ที่ Sharpe สูงสุด ใช้ทั้งผลตอบแทนและ covariance' },
+    momentum: { name: 'Momentum (ครึ่งที่แรงสุด)', desc: 'ถือเท่ากันเฉพาะครึ่งบนของหุ้นที่ขึ้นมากสุดใน 12 เดือนก่อน ไม่นับเดือนล่าสุด (Paulos หน้า 47–48)', signal: true },
+    trend: { name: 'ตามเทรนด์ (เหนือ SMA200)', desc: 'ถือเท่ากันเฉพาะตัวที่ราคาอยู่เหนือค่าเฉลี่ย 200 วัน ตัวที่เหลือถือเงินสด (Paulos หน้า 41–44)', signal: true },
   };
+
+  // Signal-driven weights from a price index idx[i][t]; weights may sum to less than 1 (rest is cash).
+  // Returns null while there isn't enough history yet.
+  function signalWeights(method, idx, t) {
+    const n = idx.length;
+    if (method === 'momentum') {
+      if (t < YEAR) return null;
+      const mom = idx.map((p, i) => ({ i, m: p[t - 21] / p[t - YEAR] - 1 }));
+      const top = mom.sort((a, b) => b.m - a.m).slice(0, Math.ceil(n / 2));
+      const w = new Array(n).fill(0);
+      for (const x of top) w[x.i] = 1 / top.length;
+      return w;
+    }
+    if (t < 200) return null;
+    const above = idx.map((p) => {
+      let s = 0;
+      for (let j = t - 199; j <= t; j++) s += p[j];
+      return p[t] > s / 200;
+    });
+    return above.map((a) => (a ? 1 / n : 0));
+  }
 
   function weightsFor(method, est, rfPct) {
     const n = est.mu.length;
@@ -107,20 +130,25 @@
   function backtest(dates, R, s, e, o) {
     const n = R.length;
     const cost = (o.costBps || 0) / 10000;
+    const rfA = (o.rf || 0) / 100;
     const key = periodKey[o.rebalance];
+    const idx = METHODS[o.method].signal ? R.map((r) => { let v = 1; return r.map((x) => (v *= 1 + x)); }) : null;
     let w = new Array(n).fill(0), eq = 100, turnover = 0, rebalances = 0, last = null;
     const equity = [], rets = [];
     for (let t = s; t <= e; t++) {
       let r = 0;
       if (t > s) {
-        r = dot(w, R.map((x) => x[t]));
+        const cashW = Math.max(0, 1 - w.reduce((a, b) => a + b, 0));
+        const rfDay = Math.pow(1 + rfA, (dates[t] - dates[t - 1]) / (365.25 * 86400000)) - 1;
+        r = dot(w, R.map((x) => x[t])) + cashW * rfDay;
         eq *= 1 + r;
         if (1 + r !== 0) w = w.map((wi, i) => (wi * (1 + R[i][t])) / (1 + r));
       }
       const boundary = t === s || (key && t < e && key(new Date(dates[t])) !== key(new Date(dates[t + 1])));
       if (boundary) {
         const a = Math.max(0, t - (o.lookback || YEAR));
-        const target = t - a >= 60 ? weightsFor(o.method, estimate(R, a, t), o.rf || 0) : new Array(n).fill(1 / n);
+        const target = (idx && signalWeights(o.method, idx, t)) ||
+          (!idx && t - a >= 60 ? weightsFor(o.method, estimate(R, a, t), o.rf || 0) : new Array(n).fill(1 / n));
         const tv = target.reduce((sum, x, i) => sum + Math.abs(x - w[i]), 0);
         if (t > s) turnover += tv;
         eq *= 1 - cost * tv;
@@ -136,7 +164,7 @@
     return { equity, rets, last, turnoverPerYear: years > 0 ? turnover / years : 0, rebalances };
   }
 
-  QL.portfolio = { align, returnsOf, estimate, projSimplex, minQuad, frontier, weightsFor, backtest, METHODS };
+  QL.portfolio = { align, returnsOf, estimate, projSimplex, minQuad, frontier, weightsFor, signalWeights, backtest, METHODS };
 
   // ---------- view ----------
 
@@ -150,7 +178,7 @@
   const num = (v, d = 2) => (!isFinite(v) ? '—' : v.toFixed(d));
   const isoDate = (t) => new Date(t).toISOString().slice(0, 10);
 
-  function init({ container }) {
+  function init({ container, onShare }) {
     const C = QL.charts, BT = QL.backtest;
     const manifest = QL.data.getManifest();
     const universe = manifest ? manifest.tickers : [];
@@ -164,6 +192,19 @@
       rf: 2,
       tableView: {},
     };
+    // Settings from a shared link: ?pt=AAPL,JPM&pm=minvar&pr=quarter&pg=5Y&pc=5&prf=2#portfolio
+    const q = new URLSearchParams(location.search);
+    const pt = (q.get('pt') || '').split(',').map((t) => t.trim().toUpperCase()).filter((t, i, a) => has(t) && a.indexOf(t) === i).slice(0, 12);
+    if (pt.length >= 2) st.tickers = pt;
+    if (METHODS[q.get('pm')]) st.method = q.get('pm');
+    if (['month', 'quarter', 'year', 'none'].includes(q.get('pr'))) st.rebalance = q.get('pr');
+    if (['3Y', '5Y', '10Y', 'ALL'].includes(q.get('pg'))) st.range = q.get('pg');
+    const qn = (k, lo, hi, def) => { const v = parseFloat(q.get(k)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
+    st.costBps = qn('pc', 0, 200, st.costBps);
+    st.rf = qn('prf', 0, 20, st.rf);
+    const link = () => location.origin + location.pathname + '?' + new URLSearchParams({
+      pt: st.tickers.join(','), pm: st.method, pr: st.rebalance, pg: st.range, pc: st.costBps, prf: st.rf,
+    }).toString();
     let built = false, els = {}, result = null, token = 0;
 
     function card(title, sub, span, chartKey) {
@@ -259,6 +300,10 @@
         sel('ปรับสัดส่วน', [['month', 'ทุกเดือน'], ['quarter', 'ทุกไตรมาส'], ['year', 'ทุกปี'], ['none', 'ไม่ปรับเลย (ซื้อแล้วถือ)']], st.rebalance, (v) => { st.rebalance = v; update(); }),
         numIn('ค่าธรรมเนียม (bps)', st.costBps, 0, 200, 0.5, (v) => { st.costBps = v; update(); }),
         numIn('Risk-free (%/ปี)', st.rf, 0, 20, 0.25, (v) => { st.rf = v; update(); }));
+      const share = h('button', 'btn btn-outline', 'คัดลอกลิงก์การตั้งค่านี้');
+      share.type = 'button';
+      share.addEventListener('click', () => onShare && onShare(link(), share));
+      row2.append(share);
       els.status = h('p', 'status');
       els.status.setAttribute('role', 'status');
       els.status.setAttribute('aria-live', 'polite');
@@ -435,6 +480,9 @@
         for (const k of Object.keys(METHODS)) row[k] = (r.runs[k].last.w[i] * 100).toFixed(1) + '%';
         return row;
       });
+      const cash = { t: 'เงินสด' };
+      for (const k of Object.keys(METHODS)) cash[k] = (Math.max(0, 1 - r.runs[k].last.w.reduce((a, b) => a + b, 0)) * 100).toFixed(1) + '%';
+      rows.push(cash);
       C.table(els.weights.body, [{ key: 't', label: 'หุ้น' }].concat(Object.entries(METHODS).map(([k, M]) => ({ key: k, label: M.name, num: true }))), rows, { caption: 'น้ำหนักล่าสุด' });
       els.weights.body.append(h('p', 'sweep-axis', st.rebalance === 'none'
         ? 'ไม่ปรับสัดส่วน: น้ำหนักนี้คือตอนเริ่ม หลังจากนั้นจะเปลี่ยนไปตามราคา'
@@ -464,7 +512,7 @@
         { name: 'วิธีจัดน้ำหนัก (ผลจริง)', color: 3, shape: 'rect' },
       ];
       const pts = r.singles.map((x) => ({ x: x.vol, y: x.mu, group: 0, label: x.t, name: x.t }));
-      const short = { equal: 'EW', invvol: 'IV', minvar: 'MV', maxsharpe: 'MS' };
+      const short = { equal: 'EW', invvol: 'IV', minvar: 'MV', maxsharpe: 'MS', momentum: 'MO', trend: 'TR' };
       for (const [k, M] of Object.entries(METHODS)) {
         const m = r.runs[k].metrics;
         const rets = r.runs[k].rets.slice(1);
@@ -487,7 +535,7 @@
         xFormat: (v) => (v * 100).toFixed(0) + '%', yFormat: (v) => (v * 100).toFixed(0) + '%',
         xLabel: 'ความผันผวน/ปี (ความเสี่ยง)', yLabel: 'ผลตอบแทนเฉลี่ย/ปี', ariaLabel: 'Efficient frontier',
       });
-      els.frontier.body.append(h('p', 'sweep-axis', 'EW = เท่ากัน · IV = ตามความผันผวน · MV = ความเสี่ยงต่ำสุด · MS = Sharpe สูงสุด · จุดของวิธีจัดน้ำหนักใช้ผลจริงที่ไม่รู้อนาคต จึงมักอยู่ใต้เส้น'));
+      els.frontier.body.append(h('p', 'sweep-axis', 'EW = เท่ากัน · IV = ตามความผันผวน · MV = ความเสี่ยงต่ำสุด · MS = Sharpe สูงสุด · MO = Momentum · TR = ตามเทรนด์ · จุดของวิธีจัดน้ำหนักใช้ผลจริงที่ไม่รู้อนาคต จึงมักอยู่ใต้เส้น'));
     }
 
     function renderDiv(r) {

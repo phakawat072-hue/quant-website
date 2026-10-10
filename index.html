@@ -109,6 +109,36 @@
           <span>อนุญาต Short</span>
         </label>
       </div>
+
+      <div class="control-row">
+        <label class="field">
+          <span class="field-label">ขนาดสถานะ</span>
+          <select id="sizeType">
+            <option value="full">เต็ม 100%</option>
+            <option value="vol">ลดตามความผันผวน (vol targeting)</option>
+          </select>
+        </label>
+        <label class="field field-sm">
+          <span class="field-label">เป้าความผันผวน (%/ปี)</span>
+          <input id="volTarget" type="number" min="2" max="60" step="1" value="15" disabled>
+        </label>
+        <label class="field">
+          <span class="field-label">ส่งคำสั่ง</span>
+          <select id="delaySelect">
+            <option value="0">ราคาปิดวันที่เกิดสัญญาณ</option>
+            <option value="1">ช้า 1 วัน (ราคาปิดวันถัดไป)</option>
+          </select>
+        </label>
+        <label class="field field-sm">
+          <span class="field-label">ค่ายืมหุ้น Short (%/ปี)</span>
+          <input id="borrowInput" type="number" min="0" max="50" step="0.25" value="1" disabled>
+        </label>
+        <label class="check">
+          <input id="cashInput" type="checkbox" checked>
+          <span>เงินสดได้ดอกเบี้ย Risk-free</span>
+        </label>
+        <button id="shareBtn" class="btn btn-outline" type="button">คัดลอกลิงก์การตั้งค่านี้</button>
+      </div>
       <div id="livePanel" class="live-panel" hidden>
         <h2 class="live-title">ดึงราคาหุ้นสหรัฐได้ทุกตัว</h2>
         <p class="live-desc">หุ้นยอดนิยม 46 ตัวโหลดได้ทันที ส่วนตัวอื่นจะดึงสดจาก Twelve Data ด้วย API key ของคุณ
@@ -189,6 +219,19 @@
           </div>
         </header>
         <div class="chart" id="histChart"></div>
+      </article>
+
+      <article class="card span-2" data-chart="rolling">
+        <header class="card-head">
+          <div>
+            <h2>Sharpe ย้อนหลัง 1 ปี (rolling)</h2>
+            <p class="card-sub">Sharpe ของ 252 วันทำการล่าสุด ณ แต่ละวัน ดูว่ากลยุทธ์ดีสม่ำเสมอ หรือดีแค่บางช่วง</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" type="button" data-toggle-table aria-pressed="false">ดูเป็นตาราง</button>
+          </div>
+        </header>
+        <div class="chart" id="rollChart"></div>
       </article>
 
       <article class="card span-2">

@@ -7,29 +7,39 @@
   // there is no look-ahead. Costs are charged on turnover at the trade close.
   // opts.stop = { type: 'fixed' | 'trailing', pct } exits at the close that breaches the
   // stop; the strategy then stays flat until its own signal changes.
+  // Optional realism: opts.delay = 1 trades one close later; opts.size[t] in [0, 1] scales the
+  // position (volatility targeting); opts.cash earns opts.rf on uninvested capital; opts.borrowPct
+  // is the yearly cost of short exposure.
   function run(data, pos, s, e, opts) {
     const { dates, close } = data;
     const cost = (opts.costBps || 0) / 10000;
     const stop = opts.stop && opts.stop.type !== 'none' && opts.stop.pct > 0 ? opts.stop : null;
     const sp = stop ? stop.pct / 100 : 0;
+    const sig = opts.delay ? pos.map((_, t) => (t > 0 ? pos[t - 1] : 0)) : pos;
+    const size = opts.size || null;
+    const rfA = opts.cash ? (opts.rf || 0) / 100 : 0;
+    const borrowA = (opts.borrowPct || 0) / 100;
     const n = e - s + 1;
     const equity = new Array(n);
     const rets = new Array(n);
     const held = new Array(n);
     const target = new Array(n);
     const trades = [];
-    let cur = 0, eq = 100, open = null;
+    let cur = 0, expo = 0, eq = 100, open = null;
     let entryPx = 0, extreme = 0, block = null, stopHit = false;
 
     for (let k = 0; k < n; k++) {
       const t = s + k;
       const c = close[t];
       const r = k === 0 ? 0 : c / close[t - 1] - 1;
+      const dtY = k === 0 ? 0 : (dates[t] - dates[t - 1]) / YEAR_MS;
       const before = eq;
-      eq *= 1 + cur * r;
-      held[k] = cur;
+      eq *= 1 + expo * r;
+      if (rfA && dtY) eq *= 1 + (1 - Math.min(Math.abs(expo), 1)) * (Math.pow(1 + rfA, dtY) - 1);
+      if (borrowA && expo < 0) eq *= 1 + expo * borrowA * dtY;
+      held[k] = expo;
 
-      let want = pos[t];
+      let want = sig[t];
       if (block !== null) {
         if (want === block) want = 0;
         else block = null;
@@ -39,15 +49,13 @@
         extreme = cur > 0 ? Math.max(extreme, c) : Math.min(extreme, c);
         const ref = stop.type === 'trailing' ? extreme : entryPx;
         if (cur > 0 ? c <= ref * (1 - sp) : c >= ref * (1 + sp)) {
-          block = pos[t];
+          block = sig[t];
           want = 0;
           stopHit = true;
         }
       }
 
-      const turnover = Math.abs(want - cur);
-      if (turnover > 0) {
-        eq *= 1 - cost * turnover;
+      if (want !== cur) {
         if (open) {
           open.exit = t;
           open.ret = open.side * (c / close[open.entry] - 1) - 2 * cost;
@@ -61,6 +69,10 @@
         }
         cur = want;
       }
+      const next = cur * (size && isFinite(size[t]) ? size[t] : 1);
+      const turnover = Math.abs(next - expo);
+      if (turnover > 0) eq *= 1 - cost * turnover;
+      expo = next;
       target[k] = cur;
       equity[k] = eq;
       rets[k] = eq / before - 1;
@@ -121,7 +133,19 @@
     const maxDD = Math.min(...dd);
     const calmar = maxDD < 0 ? cagr / -maxDD : 0;
 
-    const out = { total, cagr, vol, sharpe, sortino, maxDD, calmar, years };
+    // Historical one-day VaR/CVaR at 95% (as positive losses) and the longest stretch below a peak.
+    const sorted = r.slice().sort((a, b) => a - b);
+    const cut = Math.max(1, Math.floor(sorted.length * 0.05));
+    const var95 = sorted.length ? -sorted[cut - 1] : NaN;
+    const cvar95 = sorted.length ? -sorted.slice(0, cut).reduce((a, b) => a + b, 0) / cut : NaN;
+    let ddDays = 0, peakT = times[0];
+    for (let i = 0; i < n; i++) {
+      if (dd[i] === 0) peakT = times[i];
+      else ddDays = Math.max(ddDays, (times[i] - peakT) / 86400000);
+    }
+
+    const out = { total, cagr, vol, sharpe, sortino, maxDD, calmar, years, var95, cvar95, ddDays: Math.round(ddDays) };
+    if (held) out.avgExposure = held.slice(1).reduce((a, h) => a + Math.abs(h), 0) / Math.max(held.length - 1, 1);
     if (trades) {
       const closed = trades.filter((t) => !t.openEnd);
       const wins = closed.filter((t) => t.ret > 0);
@@ -164,7 +188,7 @@
     };
   }
 
-  // Slope of y on x (beta) and their correlation.
+  // Slope of y on x (beta), per-period intercept (alpha) and their correlation.
   function beta(y, x) {
     const n = Math.min(x.length, y.length);
     if (n < 30) return null;
@@ -177,7 +201,8 @@
       vx += (x[i] - mx) ** 2;
       vy += (y[i] - my) ** 2;
     }
-    return { beta: vx > 0 ? cov / vx : NaN, corr: vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : NaN, n };
+    const b = vx > 0 ? cov / vx : NaN;
+    return { beta: b, alpha: my - b * mx, corr: vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : NaN, n };
   }
 
   // Up to 7 values of a numeric strategy parameter around its default, snapped to its step
@@ -192,6 +217,92 @@
       out = uniq([-3, -2, -1, 0, 1, 2, 3].map((k) => snap(d.def + k * s)));
     }
     return out;
+  }
+
+  // Volatility targeting: position scale for day t from the realised volatility of the
+  // `lookback` daily returns up to and including t, capped at 1 (no leverage).
+  function volScale(close, targetPct, lookback, ppy) {
+    const L = lookback || 20, P = ppy || 252, tgt = targetPct / 100;
+    const out = new Array(close.length).fill(NaN);
+    for (let t = L; t < close.length; t++) {
+      let s = 0, s2 = 0;
+      for (let j = t - L + 1; j <= t; j++) {
+        const x = close[j] / close[j - 1] - 1;
+        s += x;
+        s2 += x * x;
+      }
+      const m = s / L;
+      const vol = Math.sqrt(Math.max(s2 / L - m * m, 0) * L / (L - 1) * P);
+      out[t] = vol > 0 ? Math.min(1, tgt / vol) : 1;
+    }
+    return out;
+  }
+
+  // Annualised Sharpe over a trailing window of `win` returns (NaN until the window fills).
+  function rollingSharpe(rets, win, ppy, rfPct) {
+    const out = new Array(rets.length).fill(NaN);
+    const rfD = (rfPct || 0) / 100 / ppy;
+    let s = 0, s2 = 0;
+    for (let i = 1; i < rets.length; i++) {
+      s += rets[i];
+      s2 += rets[i] * rets[i];
+      if (i > win) { s -= rets[i - win]; s2 -= rets[i - win] * rets[i - win]; }
+      if (i >= win) {
+        const m = s / win, sd = Math.sqrt(Math.max(s2 / win - m * m, 0) * win / (win - 1));
+        out[i] = sd > 0 ? ((m - rfD) / sd) * Math.sqrt(ppy) : 0;
+      }
+    }
+    return out;
+  }
+
+  // Standard normal CDF (Abramowitz-Stegun 7.1.26) and inverse CDF (Acklam).
+  function normCdf(x) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x / 2);
+    return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+  }
+  function normInv(p) {
+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+    const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+    const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+    const q0 = 0.02425;
+    if (p < q0) {
+      const q = Math.sqrt(-2 * Math.log(p));
+      return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    }
+    if (p > 1 - q0) return -normInv(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+
+  // Deflated Sharpe ratio (Bailey & Lopez de Prado 2014): probability that the best of `trials`
+  // backtests has a true Sharpe above zero, given how many were tried and how much their Sharpes
+  // varied. r = the chosen strategy's per-period returns, trialSharpes = annualised Sharpes.
+  function deflatedSharpe(r, ppy, trialSharpes, rfPct) {
+    const x = r.filter(isFinite);
+    const T = x.length, N = trialSharpes.length;
+    if (T < 60 || N < 2) return null;
+    const rfD = (rfPct || 0) / 100 / ppy;
+    const mean = x.reduce((a, b) => a + b, 0) / T;
+    const sd = Math.sqrt(x.reduce((a, b) => a + (b - mean) ** 2, 0) / (T - 1));
+    if (!(sd > 0)) return null;
+    const sr = (mean - rfD) / sd;
+    const skew = x.reduce((a, b) => a + ((b - mean) / sd) ** 3, 0) / T;
+    const kurt = x.reduce((a, b) => a + ((b - mean) / sd) ** 4, 0) / T;
+    const per = trialSharpes.map((v) => v / Math.sqrt(ppy));
+    const pm = per.reduce((a, b) => a + b, 0) / N;
+    const pv = per.reduce((a, b) => a + (b - pm) ** 2, 0) / (N - 1);
+    const g = 0.5772156649;
+    const sr0 = Math.sqrt(pv) * ((1 - g) * normInv(1 - 1 / N) + g * normInv(1 - 1 / (N * Math.E)));
+    const denom = Math.sqrt(Math.max(1 - skew * sr + ((kurt - 1) / 4) * sr * sr, 1e-12));
+    return {
+      dsr: normCdf(((sr - sr0) * Math.sqrt(T - 1)) / denom),
+      psr: normCdf((sr * Math.sqrt(T - 1)) / denom),
+      sharpe: sr * Math.sqrt(ppy),
+      hurdle: sr0 * Math.sqrt(ppy),
+      trials: N,
+    };
   }
 
   // Seeded PRNG (mulberry32) so resampled results don't flicker between re-renders.
@@ -320,5 +431,5 @@
     return bins;
   }
 
-  QL.backtest = { run, drawdown, metrics, monthlyReturns, histogram, returnStats, beta, gridValues, bootstrap, walkForward };
+  QL.backtest = { run, drawdown, metrics, monthlyReturns, histogram, returnStats, beta, gridValues, bootstrap, walkForward, volScale, rollingSharpe, deflatedSharpe, normCdf, normInv };
 })((window.QL = window.QL || {}));

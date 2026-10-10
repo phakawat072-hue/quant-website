@@ -7,6 +7,7 @@ also works when opened straight from disk (`file://`).
 - Live site: https://phakawat072-hue.github.io/quant-website/ (GitHub Pages, `main` branch, repo root)
 - Scanner view: same page with `#scan`
 - Portfolio view: same page with `#portfolio`
+- Shareable links: query string (`?a=AAPL&st=sma&p=20,100&r=5Y...` for the backtest, `?pt=AAPL,JPM&pm=minvar...#portfolio` for portfolios), read once on load by `applyLink()` / the portfolio `init`
 
 ## Working with the user
 
@@ -55,7 +56,11 @@ the next workflow run regenerates it.
 
 - A signal decided at the close of day t earns day t+1's return (no look-ahead).
   `signal(close, params, allowShort, dates)` returns a position per day in {-1, 0, 1}.
-- Costs are charged on turnover (`costBps`) at the trade close.
+- Costs are charged on turnover (`costBps`) at the trade close, including size changes.
+- Every run goes through `engineOpts()`: `delay` (trade one close later), `size` (vol-targeting
+  scale from `BT.volScale`, 20-day realised vol, capped at 1), `cash` (uninvested capital earns `rf`)
+  and `borrowPct` (yearly cost of short exposure). With all of them off the engine matches the
+  original results exactly. `held` holds the effective exposure; `target` holds the side.
 - Stop-loss (`fixed` from entry, or `trailing` from the best close) exits at the
   breaching close, then the strategy stays flat until its own raw signal changes.
   Use `res.target` (the effective position), not the raw signal, for markers, tooltips and CSV.
@@ -124,6 +129,9 @@ Market* (2003). Features built from it, with the page numbers shown in the UI:
 | Bootstrap 90% intervals for Sharpe/CAGR and P(Sharpe > 0) | 63–67 |
 | Walk-forward (pick best of the sweep on 2 years, trade the next year, roll) | 28–30, 44 |
 | Multi-stock portfolio: diversification, covariance, efficient frontier, Sharpe-based weights, systematic risk | 141–162 |
+| Portfolio momentum (top half by 12-1 month return) and trend (above SMA200, rest in cash) | 41–48 |
+| Risk KPIs (VaR/CVaR 95%, longest drawdown, average exposure), rolling 1-year Sharpe, alpha vs SPY | 136–140, 159–162 |
+| Deflated Sharpe for the best of the sweep (Bailey & López de Prado) | 28–30 |
 
 The sweep uses the strategy's first two params, 7 values each around the defaults
 (`BT.gridValues`), and caches by data + window + settings so re-renders are cheap.
