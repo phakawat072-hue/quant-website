@@ -1129,16 +1129,19 @@
   // ---------- init ----------
   // ---------- views (backtest / scan) ----------
   const scanView = QL.scanView.init({ container: $('scanView'), onOpen: openTicker });
+  const portfolioView = QL.portfolioView.init({ container: $('portfolioView') });
 
   function route() {
-    const view = location.hash === '#scan' ? 'scan' : 'backtest';
+    const view = location.hash === '#scan' ? 'scan' : location.hash === '#portfolio' ? 'portfolio' : 'backtest';
     $('scanView').hidden = view !== 'scan';
+    $('portfolioView').hidden = view !== 'portfolio';
     $('backtestView').hidden = view !== 'backtest';
     for (const a of document.querySelectorAll('.view-nav a')) {
       if (a.dataset.view === view) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     }
     if (view === 'scan') scanView.show();
+    if (view === 'portfolio') portfolioView.show();
   }
 
   function goToBacktest() {
