@@ -1,14 +1,14 @@
 QL.data.setManifest({
- "updated": "2026-10-12",
- "generatedAt": "2026-10-14T01:20:59+00:00",
+ "updated": "2026-10-14",
+ "generatedAt": "2026-10-15T00:46:03+00:00",
  "tickers": [
   {
    "ticker": "AAPL",
    "name": "Apple",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -16,8 +16,8 @@ QL.data.setManifest({
    "name": "Microsoft",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -25,8 +25,8 @@ QL.data.setManifest({
    "name": "NVIDIA",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -34,8 +34,8 @@ QL.data.setManifest({
    "name": "Alphabet (Google)",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -43,8 +43,8 @@ QL.data.setManifest({
    "name": "Amazon",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -52,8 +52,8 @@ QL.data.setManifest({
    "name": "Meta Platforms",
    "sector": "เทคโนโลยี",
    "first": "2012-05-18",
-   "last": "2026-10-12",
-   "rows": 3620,
+   "last": "2026-10-13",
+   "rows": 3621,
    "source": "Yahoo Finance"
   },
   {
@@ -61,8 +61,8 @@ QL.data.setManifest({
    "name": "Tesla",
    "sector": "เทคโนโลยี",
    "first": "2010-06-29",
-   "last": "2026-10-12",
-   "rows": 4097,
+   "last": "2026-10-14",
+   "rows": 4099,
    "source": "Yahoo Finance"
   },
   {
@@ -70,8 +70,8 @@ QL.data.setManifest({
    "name": "Broadcom",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -79,8 +79,8 @@ QL.data.setManifest({
    "name": "Advanced Micro Devices",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -88,8 +88,8 @@ QL.data.setManifest({
    "name": "Oracle",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -97,8 +97,8 @@ QL.data.setManifest({
    "name": "Salesforce",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -106,8 +106,8 @@ QL.data.setManifest({
    "name": "Adobe",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -115,8 +115,8 @@ QL.data.setManifest({
    "name": "Netflix",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -124,8 +124,8 @@ QL.data.setManifest({
    "name": "Intel",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -133,8 +133,8 @@ QL.data.setManifest({
    "name": "Cisco",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -142,8 +142,8 @@ QL.data.setManifest({
    "name": "Qualcomm",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -151,8 +151,8 @@ QL.data.setManifest({
    "name": "Palantir",
    "sector": "เทคโนโลยี",
    "first": "2020-09-30",
-   "last": "2026-10-12",
-   "rows": 1515,
+   "last": "2026-10-13",
+   "rows": 1516,
    "source": "Yahoo Finance"
   },
   {
@@ -160,8 +160,8 @@ QL.data.setManifest({
    "name": "JPMorgan Chase",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -169,8 +169,8 @@ QL.data.setManifest({
    "name": "Bank of America",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -178,8 +178,8 @@ QL.data.setManifest({
    "name": "Goldman Sachs",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -187,8 +187,8 @@ QL.data.setManifest({
    "name": "Visa",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -196,8 +196,8 @@ QL.data.setManifest({
    "name": "Mastercard",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -205,8 +205,8 @@ QL.data.setManifest({
    "name": "Berkshire Hathaway B",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -214,8 +214,8 @@ QL.data.setManifest({
    "name": "UnitedHealth",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -223,8 +223,8 @@ QL.data.setManifest({
    "name": "Johnson & Johnson",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -232,8 +232,8 @@ QL.data.setManifest({
    "name": "Eli Lilly",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -241,8 +241,8 @@ QL.data.setManifest({
    "name": "Pfizer",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -250,8 +250,8 @@ QL.data.setManifest({
    "name": "Merck",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -259,8 +259,8 @@ QL.data.setManifest({
    "name": "AbbVie",
    "sector": "สุขภาพ",
    "first": "2013-01-02",
-   "last": "2026-10-12",
-   "rows": 3465,
+   "last": "2026-10-13",
+   "rows": 3466,
    "source": "Yahoo Finance"
   },
   {
@@ -268,8 +268,8 @@ QL.data.setManifest({
    "name": "Walmart",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -277,8 +277,8 @@ QL.data.setManifest({
    "name": "Costco",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -286,8 +286,8 @@ QL.data.setManifest({
    "name": "Coca-Cola",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -295,8 +295,8 @@ QL.data.setManifest({
    "name": "PepsiCo",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -304,8 +304,8 @@ QL.data.setManifest({
    "name": "Procter & Gamble",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -313,8 +313,8 @@ QL.data.setManifest({
    "name": "McDonald's",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -322,8 +322,8 @@ QL.data.setManifest({
    "name": "Nike",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -331,8 +331,8 @@ QL.data.setManifest({
    "name": "Home Depot",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -340,8 +340,8 @@ QL.data.setManifest({
    "name": "Walt Disney",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -349,8 +349,8 @@ QL.data.setManifest({
    "name": "Starbucks",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -358,8 +358,8 @@ QL.data.setManifest({
    "name": "Exxon Mobil",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -367,8 +367,8 @@ QL.data.setManifest({
    "name": "Chevron",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -376,8 +376,8 @@ QL.data.setManifest({
    "name": "Boeing",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -385,8 +385,8 @@ QL.data.setManifest({
    "name": "Caterpillar",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -394,8 +394,8 @@ QL.data.setManifest({
    "name": "GE Aerospace",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -403,8 +403,8 @@ QL.data.setManifest({
    "name": "SPDR S&P 500 ETF",
    "sector": "ETF ดัชนี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -412,8 +412,8 @@ QL.data.setManifest({
    "name": "Invesco QQQ (Nasdaq-100)",
    "sector": "ETF ดัชนี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -421,8 +421,8 @@ QL.data.setManifest({
    "name": "IBM",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -430,8 +430,8 @@ QL.data.setManifest({
    "name": "Texas Instruments",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -439,8 +439,8 @@ QL.data.setManifest({
    "name": "Intuit",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -448,8 +448,8 @@ QL.data.setManifest({
    "name": "ServiceNow",
    "sector": "เทคโนโลยี",
    "first": "2012-06-29",
-   "last": "2026-10-12",
-   "rows": 3591,
+   "last": "2026-10-13",
+   "rows": 3592,
    "source": "Yahoo Finance"
   },
   {
@@ -457,8 +457,8 @@ QL.data.setManifest({
    "name": "Applied Materials",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -466,8 +466,8 @@ QL.data.setManifest({
    "name": "Micron Technology",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -475,8 +475,8 @@ QL.data.setManifest({
    "name": "Analog Devices",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -484,8 +484,8 @@ QL.data.setManifest({
    "name": "Lam Research",
    "sector": "เทคโนโลยี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -493,8 +493,8 @@ QL.data.setManifest({
    "name": "Palo Alto Networks",
    "sector": "เทคโนโลยี",
    "first": "2012-07-20",
-   "last": "2026-10-12",
-   "rows": 3577,
+   "last": "2026-10-13",
+   "rows": 3578,
    "source": "Yahoo Finance"
   },
   {
@@ -502,8 +502,8 @@ QL.data.setManifest({
    "name": "Wells Fargo",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -511,8 +511,8 @@ QL.data.setManifest({
    "name": "Citigroup",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -520,8 +520,8 @@ QL.data.setManifest({
    "name": "Morgan Stanley",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -529,8 +529,8 @@ QL.data.setManifest({
    "name": "American Express",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -538,8 +538,8 @@ QL.data.setManifest({
    "name": "BlackRock",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -547,8 +547,8 @@ QL.data.setManifest({
    "name": "Charles Schwab",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -556,8 +556,8 @@ QL.data.setManifest({
    "name": "S&P Global",
    "sector": "การเงิน",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -565,8 +565,8 @@ QL.data.setManifest({
    "name": "PayPal",
    "sector": "การเงิน",
    "first": "2015-07-06",
-   "last": "2026-10-12",
-   "rows": 2835,
+   "last": "2026-10-13",
+   "rows": 2836,
    "source": "Yahoo Finance"
   },
   {
@@ -574,8 +574,8 @@ QL.data.setManifest({
    "name": "Thermo Fisher Scientific",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -583,8 +583,8 @@ QL.data.setManifest({
    "name": "Abbott Laboratories",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -592,8 +592,8 @@ QL.data.setManifest({
    "name": "Danaher",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -601,8 +601,8 @@ QL.data.setManifest({
    "name": "Bristol-Myers Squibb",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -610,8 +610,8 @@ QL.data.setManifest({
    "name": "Amgen",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -619,8 +619,8 @@ QL.data.setManifest({
    "name": "Gilead Sciences",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -628,8 +628,8 @@ QL.data.setManifest({
    "name": "CVS Health",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -637,8 +637,8 @@ QL.data.setManifest({
    "name": "Intuitive Surgical",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -646,8 +646,8 @@ QL.data.setManifest({
    "name": "Medtronic",
    "sector": "สุขภาพ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -655,8 +655,8 @@ QL.data.setManifest({
    "name": "Lowe's",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -664,8 +664,8 @@ QL.data.setManifest({
    "name": "Target",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -673,8 +673,8 @@ QL.data.setManifest({
    "name": "TJX Companies",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -682,8 +682,8 @@ QL.data.setManifest({
    "name": "Booking Holdings",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -691,8 +691,8 @@ QL.data.setManifest({
    "name": "Chipotle Mexican Grill",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -700,8 +700,8 @@ QL.data.setManifest({
    "name": "Altria",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -709,8 +709,8 @@ QL.data.setManifest({
    "name": "Philip Morris International",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -718,8 +718,8 @@ QL.data.setManifest({
    "name": "Colgate-Palmolive",
    "sector": "สินค้าอุปโภคบริโภค",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -727,8 +727,8 @@ QL.data.setManifest({
    "name": "ConocoPhillips",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -736,8 +736,8 @@ QL.data.setManifest({
    "name": "Schlumberger",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -745,8 +745,8 @@ QL.data.setManifest({
    "name": "Honeywell",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -754,8 +754,8 @@ QL.data.setManifest({
    "name": "United Parcel Service",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -763,8 +763,8 @@ QL.data.setManifest({
    "name": "RTX (Raytheon)",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -772,8 +772,8 @@ QL.data.setManifest({
    "name": "Lockheed Martin",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -781,8 +781,8 @@ QL.data.setManifest({
    "name": "Deere & Company",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -790,8 +790,8 @@ QL.data.setManifest({
    "name": "Union Pacific",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -799,8 +799,8 @@ QL.data.setManifest({
    "name": "3M",
    "sector": "พลังงานและอุตสาหกรรม",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -808,8 +808,8 @@ QL.data.setManifest({
    "name": "NextEra Energy",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -817,8 +817,8 @@ QL.data.setManifest({
    "name": "Duke Energy",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -826,8 +826,8 @@ QL.data.setManifest({
    "name": "Southern Company",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -835,8 +835,8 @@ QL.data.setManifest({
    "name": "AT&T",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -844,8 +844,8 @@ QL.data.setManifest({
    "name": "Verizon",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -853,8 +853,8 @@ QL.data.setManifest({
    "name": "T-Mobile US",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -862,8 +862,8 @@ QL.data.setManifest({
    "name": "Comcast",
    "sector": "สาธารณูปโภคและสื่อสาร",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -871,8 +871,8 @@ QL.data.setManifest({
    "name": "American Tower",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -880,8 +880,8 @@ QL.data.setManifest({
    "name": "Prologis",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -889,8 +889,8 @@ QL.data.setManifest({
    "name": "Realty Income",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -898,8 +898,8 @@ QL.data.setManifest({
    "name": "Linde",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -907,8 +907,8 @@ QL.data.setManifest({
    "name": "Newmont",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -916,8 +916,8 @@ QL.data.setManifest({
    "name": "Freeport-McMoRan",
    "sector": "อสังหาฯ และวัสดุ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -925,8 +925,8 @@ QL.data.setManifest({
    "name": "SPDR Dow Jones Industrial Average ETF",
    "sector": "ETF ดัชนี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -934,8 +934,8 @@ QL.data.setManifest({
    "name": "iShares Russell 2000 (หุ้นเล็ก)",
    "sector": "ETF ดัชนี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -943,8 +943,8 @@ QL.data.setManifest({
    "name": "iShares MSCI EAFE (หุ้นนอกสหรัฐ)",
    "sector": "ETF ดัชนี",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -952,8 +952,8 @@ QL.data.setManifest({
    "name": "iShares 20+ Year Treasury Bond",
    "sector": "ETF พันธบัตรและทองคำ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -961,8 +961,8 @@ QL.data.setManifest({
    "name": "iShares 7-10 Year Treasury Bond",
    "sector": "ETF พันธบัตรและทองคำ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   },
   {
@@ -970,8 +970,8 @@ QL.data.setManifest({
    "name": "SPDR Gold Shares",
    "sector": "ETF พันธบัตรและทองคำ",
    "first": "2010-01-04",
-   "last": "2026-10-12",
-   "rows": 4219,
+   "last": "2026-10-14",
+   "rows": 4221,
    "source": "Yahoo Finance"
   }
  ]
