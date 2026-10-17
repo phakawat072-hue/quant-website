@@ -1,6 +1,6 @@
 QL.data.setManifest({
  "updated": "2026-10-15",
- "generatedAt": "2026-10-16T00:38:19+00:00",
+ "generatedAt": "2026-10-17T00:42:22+00:00",
  "tickers": [
   {
    "ticker": "AAPL",
@@ -52,8 +52,8 @@ QL.data.setManifest({
    "name": "Meta Platforms",
    "sector": "เทคโนโลยี",
    "first": "2012-05-18",
-   "last": "2026-10-14",
-   "rows": 3622,
+   "last": "2026-10-15",
+   "rows": 3623,
    "source": "Yahoo Finance"
   },
   {
@@ -151,8 +151,8 @@ QL.data.setManifest({
    "name": "Palantir",
    "sector": "เทคโนโลยี",
    "first": "2020-09-30",
-   "last": "2026-10-14",
-   "rows": 1517,
+   "last": "2026-10-15",
+   "rows": 1518,
    "source": "Yahoo Finance"
   },
   {
@@ -259,8 +259,8 @@ QL.data.setManifest({
    "name": "AbbVie",
    "sector": "สุขภาพ",
    "first": "2013-01-02",
-   "last": "2026-10-14",
-   "rows": 3467,
+   "last": "2026-10-15",
+   "rows": 3468,
    "source": "Yahoo Finance"
   },
   {
@@ -448,8 +448,8 @@ QL.data.setManifest({
    "name": "ServiceNow",
    "sector": "เทคโนโลยี",
    "first": "2012-06-29",
-   "last": "2026-10-14",
-   "rows": 3593,
+   "last": "2026-10-15",
+   "rows": 3594,
    "source": "Yahoo Finance"
   },
   {
@@ -493,8 +493,8 @@ QL.data.setManifest({
    "name": "Palo Alto Networks",
    "sector": "เทคโนโลยี",
    "first": "2012-07-20",
-   "last": "2026-10-14",
-   "rows": 3579,
+   "last": "2026-10-15",
+   "rows": 3580,
    "source": "Yahoo Finance"
   },
   {
@@ -565,8 +565,8 @@ QL.data.setManifest({
    "name": "PayPal",
    "sector": "การเงิน",
    "first": "2015-07-06",
-   "last": "2026-10-14",
-   "rows": 2837,
+   "last": "2026-10-15",
+   "rows": 2838,
    "source": "Yahoo Finance"
   },
   {
