@@ -1,6 +1,6 @@
 QL.data.setManifest({
  "updated": "2026-11-25",
- "generatedAt": "2026-11-26T04:17:57+00:00",
+ "generatedAt": "2026-11-27T04:28:07+00:00",
  "tickers": [
   {
    "ticker": "AAPL",
